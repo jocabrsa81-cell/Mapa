@@ -1,0 +1,3196 @@
+{
+  "version": 0.6,
+  "generator": "Overpass API 0.7.62.4 2390de5a",
+  "osm3s": {
+    "timestamp_osm_base": "2026-11-01T16:16:09Z",
+    "copyright": "The data included in this document is from www.openstreetmap.org. The data is made available under ODbL."
+  },
+  "elements": [
+    {
+      "type": "node",
+      "id": 353833346,
+      "lat": 49.5062018,
+      "lon": 5.9887956,
+      "tags": {
+        "amenity": "fuel",
+        "brand": "Shell",
+        "brand:wikidata": "Q110716465",
+        "name": "Shell",
+        "operator": "Shell"
+      }
+    },
+    {
+      "type": "node",
+      "id": 686705457,
+      "lat": 49.4817353,
+      "lon": 6.0429935,
+      "tags": {
+        "amenity": "fuel",
+        "brand": "Gulf",
+        "brand:wikidata": "Q5617505",
+        "brand:wikipedia": "en:Gulf Oil LP",
+        "name": "Gulf"
+      }
+    },
+    {
+      "type": "node",
+      "id": 1350561482,
+      "lat": 49.5020444,
+      "lon": 5.973702,
+      "tags": {
+        "amenity": "fuel",
+        "brand": "TotalEnergies",
+        "brand:wikidata": "Q154037",
+        "brand:wikipedia": "fr:Total Énergies",
+        "name": "Total Esch-sur-Alzette",
+        "operator": "Total"
+      }
+    },
+    {
+      "type": "node",
+      "id": 1350561657,
+      "lat": 49.4639505,
+      "lon": 6.0825256,
+      "tags": {
+        "amenity": "fuel",
+        "brand": "TotalEnergies",
+        "brand:wikidata": "Q154037",
+        "name": "Total Dudelange"
+      }
+    },
+    {
+      "type": "node",
+      "id": 1480020970,
+      "lat": 49.4660674,
+      "lon": 6.0362419,
+      "tags": {
+        "addr:city": "Rumelange",
+        "addr:housenumber": "19",
+        "addr:postcode": "3754",
+        "addr:street": "Rue de l'Usine",
+        "amenity": "fuel",
+        "brand": "Q8",
+        "brand:wikidata": "Q1634762",
+        "name": "Q8",
+        "operator": "Q8"
+      }
+    },
+    {
+      "type": "node",
+      "id": 1480022294,
+      "lat": 49.4583982,
+      "lon": 6.0310651,
+      "tags": {
+        "amenity": "fuel",
+        "brand": "Total",
+        "brand:wikidata": "Q154037",
+        "fuel:diesel": "yes",
+        "fuel:lpg": "yes",
+        "fuel:octane_95": "yes",
+        "fuel:octane_98": "yes",
+        "name": "Total",
+        "operator": "Total"
+      }
+    },
+    {
+      "type": "node",
+      "id": 1480022470,
+      "lat": 49.4591056,
+      "lon": 6.0315432,
+      "tags": {
+        "amenity": "fuel",
+        "brand": "Shell",
+        "brand:wikidata": "Q110716465",
+        "name": "Shell",
+        "operator": "Shell"
+      }
+    },
+    {
+      "type": "node",
+      "id": 1480064027,
+      "lat": 49.4521065,
+      "lon": 6.0262426,
+      "tags": {
+        "amenity": "fuel",
+        "brand": "Total",
+        "brand:wikidata": "Q154037",
+        "name": "Total",
+        "operator": "Total"
+      }
+    },
+    {
+      "type": "node",
+      "id": 2272874318,
+      "lat": 49.5115468,
+      "lon": 6.001497,
+      "tags": {
+        "amenity": "fuel",
+        "brand": "Q8",
+        "brand:wikidata": "Q4119207",
+        "fuel:HGV_diesel": "yes",
+        "name": "IDS / Q8",
+        "operator": "Q8"
+      }
+    },
+    {
+      "type": "node",
+      "id": 2999483553,
+      "lat": 49.4116632,
+      "lon": 5.94964,
+      "tags": {
+        "amenity": "fuel",
+        "brand": "Intermarché",
+        "brand:wikidata": "Q3153200",
+        "brand:wikipedia": "fr:Intermarché",
+        "fuel:diesel": "yes",
+        "fuel:e10": "yes",
+        "fuel:octane_98": "yes",
+        "name": "Station Service Intermarché",
+        "not:brand:wikidata": "Q1273376",
+        "opening_hours": "24/7",
+        "operator": "Intermarché",
+        "ref:FR:prix-carburants": "57710001",
+        "shop": "gas",
+        "source": "Ministère de l'Economie, de l'Industrie et du Numérique - 22/10/2016",
+        "vending": "fuel",
+        "vending_machine": "fuel"
+      }
+    },
+    {
+      "type": "node",
+      "id": 4010906609,
+      "lat": 49.5110773,
+      "lon": 5.9907083,
+      "tags": {
+        "amenity": "fuel",
+        "brand": "Gulf",
+        "brand:wikidata": "Q5617505",
+        "name": "Gulf"
+      }
+    },
+    {
+      "type": "node",
+      "id": 8771576282,
+      "lat": 49.5153425,
+      "lon": 6.0040069,
+      "tags": {
+        "access": "permissive",
+        "amenity": "fuel",
+        "brand": "Total",
+        "brand:wikidata": "Q154037",
+        "fuel:diesel": "yes",
+        "name": "Total"
+      }
+    },
+    {
+      "type": "node",
+      "id": 9120226159,
+      "lat": 49.4980895,
+      "lon": 5.9457728,
+      "tags": {
+        "amenity": "fuel",
+        "brand": "TotalEnergies",
+        "brand:wikidata": "Q154037",
+        "name": "TotalEnergies"
+      }
+    },
+    {
+      "type": "node",
+      "id": 12199727254,
+      "lat": 49.511149,
+      "lon": 5.9328691,
+      "tags": {
+        "addr:city": "Belvaux",
+        "addr:housenumber": "65",
+        "addr:postcode": "4450",
+        "addr:street": "Route d'Esch",
+        "amenity": "fuel",
+        "brand": "Q8",
+        "brand:wikidata": "Q4119207",
+        "name": "Q8",
+        "opening_hours": "Mo-Sa 06:00-22:00; Su 07:00-22:00"
+      }
+    },
+    {
+      "type": "node",
+      "id": 12258730867,
+      "lat": 49.507253,
+      "lon": 5.9895283,
+      "tags": {
+        "amenity": "fuel",
+        "compressed_air": "yes",
+        "name": "ARAL"
+      }
+    },
+    {
+      "type": "node",
+      "id": 12468785852,
+      "lat": 49.4940195,
+      "lon": 6.0847977,
+      "tags": {
+        "amenity": "fuel",
+        "brand": "Q8",
+        "brand:wikidata": "Q4119207",
+        "compressed_air": "yes",
+        "name": "Q8",
+        "opening_hours": "Mo-Su 06:30-22:30",
+        "operator": "Q8",
+        "website": "https://www.q8.lu/stations/q8-dudelange"
+      }
+    },
+    {
+      "type": "node",
+      "id": 14130998788,
+      "lat": 49.512072,
+      "lon": 5.9956969,
+      "tags": {
+        "addr:city": "Esch-sur-Alzette",
+        "addr:housenumber": "2",
+        "addr:postcode": "4149",
+        "addr:street": "Rue Romain Fandel",
+        "amenity": "fuel",
+        "brand": "Q8",
+        "brand:wikidata": "Q4119207",
+        "name": "Q8"
+      }
+    },
+    {
+      "type": "way",
+      "id": 24468196,
+      "bounds": {
+        "minlat": 49.4046506,
+        "minlon": 6.1133635,
+        "maxlat": 49.4073584,
+        "maxlon": 6.1183404
+      },
+      "geometry": [
+        {
+          "lat": 49.406894,
+          "lon": 6.1183404
+        },
+        {
+          "lat": 49.4071526,
+          "lon": 6.1169489
+        },
+        {
+          "lat": 49.407355,
+          "lon": 6.1158596
+        },
+        {
+          "lat": 49.4073584,
+          "lon": 6.1157604
+        },
+        {
+          "lat": 49.4073425,
+          "lon": 6.1157135
+        },
+        {
+          "lat": 49.4073221,
+          "lon": 6.1156588
+        },
+        {
+          "lat": 49.4072914,
+          "lon": 6.1156251
+        },
+        {
+          "lat": 49.4061726,
+          "lon": 6.115027
+        },
+        {
+          "lat": 49.4056843,
+          "lon": 6.1145662
+        },
+        {
+          "lat": 49.4047326,
+          "lon": 6.113703
+        },
+        {
+          "lat": 49.4046695,
+          "lon": 6.1136276
+        },
+        {
+          "lat": 49.4046506,
+          "lon": 6.1135506
+        },
+        {
+          "lat": 49.4046656,
+          "lon": 6.1133635
+        }
+      ],
+      "tags": {
+        "highway": "unclassified",
+        "lane_markings": "no",
+        "lit": "no",
+        "name": "Chemin des Mineurs",
+        "parking:both": "no",
+        "ref:FR:FANTOIR": "576721802B",
+        "surface": "asphalt"
+      }
+    },
+    {
+      "type": "way",
+      "id": 25191177,
+      "bounds": {
+        "minlat": 49.4889848,
+        "minlon": 6.0863198,
+        "maxlat": 49.4892841,
+        "maxlon": 6.0872492
+      },
+      "geometry": [
+        {
+          "lat": 49.4892841,
+          "lon": 6.0863198
+        },
+        {
+          "lat": 49.4889848,
+          "lon": 6.0872492
+        }
+      ],
+      "tags": {
+        "highway": "residential",
+        "lanes": "2",
+        "lit": "yes",
+        "maxspeed": "30",
+        "name": "Rue Pierre Krier",
+        "name:etymology:wikidata": "Q13104571",
+        "parking:both": "parallel",
+        "sidewalk": "both",
+        "sidewalk:both:surface": "paving_stones",
+        "surface": "asphalt"
+      }
+    },
+    {
+      "type": "way",
+      "id": 25203356,
+      "bounds": {
+        "minlat": 49.4834848,
+        "minlon": 6.0955679,
+        "maxlat": 49.4852939,
+        "maxlon": 6.0959805
+      },
+      "geometry": [
+        {
+          "lat": 49.4852939,
+          "lon": 6.0955679
+        },
+        {
+          "lat": 49.4852644,
+          "lon": 6.0955751
+        },
+        {
+          "lat": 49.4852109,
+          "lon": 6.0955881
+        },
+        {
+          "lat": 49.4850108,
+          "lon": 6.0957665
+        },
+        {
+          "lat": 49.4848699,
+          "lon": 6.0958489
+        },
+        {
+          "lat": 49.4847177,
+          "lon": 6.0959171
+        },
+        {
+          "lat": 49.4845729,
+          "lon": 6.0959599
+        },
+        {
+          "lat": 49.48436,
+          "lon": 6.0959805
+        },
+        {
+          "lat": 49.4841675,
+          "lon": 6.095979
+        },
+        {
+          "lat": 49.4839174,
+          "lon": 6.0959718
+        },
+        {
+          "lat": 49.4835739,
+          "lon": 6.0959245
+        },
+        {
+          "lat": 49.4834848,
+          "lon": 6.0959122
+        }
+      ],
+      "tags": {
+        "highway": "residential",
+        "lanes": "2",
+        "lit": "yes",
+        "maxspeed": "30",
+        "name": "Rue Jean Origer",
+        "name:etymology:wikidata": "Q6171269",
+        "parking:both": "parallel",
+        "sidewalk": "both",
+        "surface": "asphalt"
+      }
+    },
+    {
+      "type": "way",
+      "id": 25452198,
+      "bounds": {
+        "minlat": 49.4868085,
+        "minlon": 6.0881079,
+        "maxlat": 49.4870288,
+        "maxlon": 6.0894315
+      },
+      "geometry": [
+        {
+          "lat": 49.4870288,
+          "lon": 6.0881079
+        },
+        {
+          "lat": 49.4870256,
+          "lon": 6.088225
+        },
+        {
+          "lat": 49.4870102,
+          "lon": 6.0884104
+        },
+        {
+          "lat": 49.4869852,
+          "lon": 6.0885403
+        },
+        {
+          "lat": 49.4868093,
+          "lon": 6.0892129
+        },
+        {
+          "lat": 49.4868087,
+          "lon": 6.0893789
+        },
+        {
+          "lat": 49.4868085,
+          "lon": 6.0894315
+        }
+      ],
+      "tags": {
+        "highway": "living_street",
+        "lit": "yes",
+        "maxspeed": "20",
+        "name": "Rue Gaston Barbanson",
+        "name:etymology:wikidata": "Q3098915",
+        "oneway": "yes",
+        "oneway:bicycle": "no",
+        "parking:left": "parallel",
+        "sidewalk": "both",
+        "surface": "asphalt"
+      }
+    },
+    {
+      "type": "way",
+      "id": 26149649,
+      "bounds": {
+        "minlat": 49.4896043,
+        "minlon": 6.0870924,
+        "maxlat": 49.4904091,
+        "maxlon": 6.0878412
+      },
+      "geometry": [
+        {
+          "lat": 49.4904091,
+          "lon": 6.0878412
+        },
+        {
+          "lat": 49.4903391,
+          "lon": 6.0876971
+        },
+        {
+          "lat": 49.4898538,
+          "lon": 6.087382
+        },
+        {
+          "lat": 49.4897479,
+          "lon": 6.0873035
+        },
+        {
+          "lat": 49.489633,
+          "lon": 6.0872184
+        },
+        {
+          "lat": 49.4896079,
+          "lon": 6.0871587
+        },
+        {
+          "lat": 49.4896043,
+          "lon": 6.0870924
+        }
+      ],
+      "tags": {
+        "highway": "residential",
+        "lane_markings": "no",
+        "lanes": "2",
+        "lit": "yes",
+        "maxspeed": "30",
+        "name": "Rue du Berger",
+        "parking:right": "parallel",
+        "sidewalk": "left",
+        "sidewalk:left:surface": "paving_stones",
+        "surface": "asphalt"
+      }
+    },
+    {
+      "type": "way",
+      "id": 35078189,
+      "bounds": {
+        "minlat": 49.4892841,
+        "minlon": 6.0863198,
+        "maxlat": 49.4910033,
+        "maxlon": 6.0874303
+      },
+      "geometry": [
+        {
+          "lat": 49.4892841,
+          "lon": 6.0863198
+        },
+        {
+          "lat": 49.4896923,
+          "lon": 6.0866506
+        },
+        {
+          "lat": 49.4897164,
+          "lon": 6.0866695
+        },
+        {
+          "lat": 49.4897415,
+          "lon": 6.0866873
+        },
+        {
+          "lat": 49.4899566,
+          "lon": 6.0868415
+        },
+        {
+          "lat": 49.4901814,
+          "lon": 6.0869823
+        },
+        {
+          "lat": 49.4908086,
+          "lon": 6.0873242
+        },
+        {
+          "lat": 49.4910033,
+          "lon": 6.0874303
+        }
+      ],
+      "tags": {
+        "highway": "residential",
+        "lanes": "2",
+        "lit": "yes",
+        "maxspeed": "30",
+        "name": "Route de Burange",
+        "parking:right": "parallel",
+        "sidewalk": "both",
+        "sidewalk:both:surface": "paving_stones",
+        "surface": "asphalt"
+      }
+    },
+    {
+      "type": "way",
+      "id": 37786248,
+      "bounds": {
+        "minlat": 49.469212,
+        "minlon": 5.9580548,
+        "maxlat": 49.4721338,
+        "maxlon": 5.9584153
+      },
+      "geometry": [
+        {
+          "lat": 49.469212,
+          "lon": 5.9584029
+        },
+        {
+          "lat": 49.4693214,
+          "lon": 5.9582724
+        },
+        {
+          "lat": 49.4694441,
+          "lon": 5.9581608
+        },
+        {
+          "lat": 49.4696145,
+          "lon": 5.9580548
+        },
+        {
+          "lat": 49.4698101,
+          "lon": 5.9580582
+        },
+        {
+          "lat": 49.4709166,
+          "lon": 5.9582466
+        },
+        {
+          "lat": 49.4715246,
+          "lon": 5.9583239
+        },
+        {
+          "lat": 49.4721012,
+          "lon": 5.9584104
+        },
+        {
+          "lat": 49.4721338,
+          "lon": 5.9584153
+        }
+      ],
+      "tags": {
+        "highway": "residential",
+        "lanes": "1",
+        "maxspeed": "30",
+        "name": "Rue Gambetta",
+        "oneway": "yes",
+        "parking:condition:both": "free",
+        "parking:condition:left": "disc",
+        "parking:condition:left:capacity": "33",
+        "parking:condition:left:capacity:disabled": "0",
+        "parking:condition:left:maxstay": "2 hours",
+        "parking:condition:right": "no",
+        "parking:condition:right:reason": "fire_lane",
+        "parking:lane:both": "parallel",
+        "parking:lane:both:parallel": "half_on_kerb",
+        "surface": "asphalt"
+      }
+    },
+    {
+      "type": "way",
+      "id": 37786268,
+      "bounds": {
+        "minlat": 49.4723566,
+        "minlon": 5.9591403,
+        "maxlat": 49.4728119,
+        "maxlon": 5.9606829
+      },
+      "geometry": [
+        {
+          "lat": 49.4728119,
+          "lon": 5.9606829
+        },
+        {
+          "lat": 49.472786,
+          "lon": 5.9604909
+        },
+        {
+          "lat": 49.4727119,
+          "lon": 5.9602559
+        },
+        {
+          "lat": 49.4725434,
+          "lon": 5.9597218
+        },
+        {
+          "lat": 49.4723566,
+          "lon": 5.9591403
+        }
+      ],
+      "tags": {
+        "highway": "residential",
+        "name": "Rue de la Quielle",
+        "parking:condition:right": "disc",
+        "parking:condition:right:capacity": "12",
+        "parking:lane:left": "no",
+        "parking:lane:right": "marked"
+      }
+    },
+    {
+      "type": "way",
+      "id": 37787091,
+      "bounds": {
+        "minlat": 49.4722,
+        "minlon": 5.9586038,
+        "maxlat": 49.4734855,
+        "maxlon": 5.958648
+      },
+      "geometry": [
+        {
+          "lat": 49.4722,
+          "lon": 5.9586336
+        },
+        {
+          "lat": 49.4723465,
+          "lon": 5.958648
+        },
+        {
+          "lat": 49.4732354,
+          "lon": 5.9586038
+        },
+        {
+          "lat": 49.4732572,
+          "lon": 5.9586038
+        },
+        {
+          "lat": 49.473435,
+          "lon": 5.9586091
+        },
+        {
+          "lat": 49.4734855,
+          "lon": 5.958648
+        }
+      ],
+      "tags": {
+        "foot": "yes",
+        "highway": "residential",
+        "maxspeed": "30",
+        "name": "Rue Guynemer",
+        "oneway": "yes",
+        "parking:condition:left": "disc",
+        "parking:condition:left:capacity": "21",
+        "parking:condition:left:maxstay": "2 hours",
+        "parking:condition:right": "disc",
+        "parking:condition:right:capacity": "12",
+        "parking:condition:right:maxstay": "2 hours",
+        "parking:lane:left": "parallel",
+        "parking:lane:left:parallel": "on_street",
+        "parking:lane:right": "parallel",
+        "parking:lane:right:parallel": "half_on_kerb",
+        "surface": "asphalt"
+      }
+    },
+    {
+      "type": "way",
+      "id": 37787093,
+      "bounds": {
+        "minlat": 49.4734855,
+        "minlon": 5.958648,
+        "maxlat": 49.4757347,
+        "maxlon": 5.9605048
+      },
+      "geometry": [
+        {
+          "lat": 49.4734855,
+          "lon": 5.958648
+        },
+        {
+          "lat": 49.4735552,
+          "lon": 5.9587258
+        },
+        {
+          "lat": 49.4738289,
+          "lon": 5.9590651
+        },
+        {
+          "lat": 49.4740005,
+          "lon": 5.9592354
+        },
+        {
+          "lat": 49.4741966,
+          "lon": 5.9593843
+        },
+        {
+          "lat": 49.4745304,
+          "lon": 5.9595519
+        },
+        {
+          "lat": 49.4749147,
+          "lon": 5.9596713
+        },
+        {
+          "lat": 49.4751848,
+          "lon": 5.9598389
+        },
+        {
+          "lat": 49.4754297,
+          "lon": 5.9600776
+        },
+        {
+          "lat": 49.4756057,
+          "lon": 5.9603097
+        },
+        {
+          "lat": 49.4757193,
+          "lon": 5.9604815
+        },
+        {
+          "lat": 49.4757347,
+          "lon": 5.9605048
+        }
+      ],
+      "tags": {
+        "highway": "residential",
+        "lanes": "1",
+        "maxspeed": "30",
+        "name": "Rue Saint-Eloi",
+        "oneway": "yes",
+        "parking:condition:left": "no",
+        "parking:condition:right": "disc",
+        "parking:condition:right:capacity": "31",
+        "parking:lane:left": "parallel",
+        "parking:lane:left:parallel": "half_on_kerb",
+        "parking:lane:right": "parallel",
+        "parking:lane:right:parallel": "half_on_kerb",
+        "surface": "asphalt"
+      }
+    },
+    {
+      "type": "way",
+      "id": 37791599,
+      "bounds": {
+        "minlat": 49.475762,
+        "minlon": 5.9611547,
+        "maxlat": 49.4778929,
+        "maxlon": 5.9634282
+      },
+      "geometry": [
+        {
+          "lat": 49.475762,
+          "lon": 5.9611547
+        },
+        {
+          "lat": 49.4757817,
+          "lon": 5.9612484
+        },
+        {
+          "lat": 49.4758247,
+          "lon": 5.9613404
+        },
+        {
+          "lat": 49.4763533,
+          "lon": 5.9619615
+        },
+        {
+          "lat": 49.4769704,
+          "lon": 5.9626866
+        },
+        {
+          "lat": 49.4772763,
+          "lon": 5.9627006
+        },
+        {
+          "lat": 49.4778929,
+          "lon": 5.9634282
+        }
+      ],
+      "tags": {
+        "highway": "residential",
+        "maxspeed": "30",
+        "name": "Rue Francbois",
+        "oneway": "yes",
+        "parking:condition:left": "disc",
+        "parking:condition:left:capacity": "40",
+        "parking:condition:left:maxstay": "2 hours",
+        "parking:condition:left:reason": "fire_lane",
+        "parking:condition:right": "disc",
+        "parking:condition:right:capacity": "24",
+        "parking:condition:right:capacity:disabled": "1",
+        "parking:condition:right:maxstay": "2 hours",
+        "parking:lane:left:parallel": "on_street",
+        "parking:left": "yes",
+        "parking:left:orientation": "parallel",
+        "parking:right": "lane",
+        "parking:right:orientation": "parallel",
+        "source:maxspeed": "FR:zone30",
+        "zone:maxspeed": "FR:30"
+      }
+    },
+    {
+      "type": "way",
+      "id": 113144986,
+      "bounds": {
+        "minlat": 49.4943015,
+        "minlon": 6.0854655,
+        "maxlat": 49.4945658,
+        "maxlon": 6.0858949
+      },
+      "geometry": [
+        {
+          "lat": 49.4945197,
+          "lon": 6.0855697
+        },
+        {
+          "lat": 49.4943561,
+          "lon": 6.0854655
+        },
+        {
+          "lat": 49.4943015,
+          "lon": 6.0856688
+        },
+        {
+          "lat": 49.4943243,
+          "lon": 6.0856833
+        },
+        {
+          "lat": 49.4944324,
+          "lon": 6.0857522
+        },
+        {
+          "lat": 49.4944429,
+          "lon": 6.0857588
+        },
+        {
+          "lat": 49.4944261,
+          "lon": 6.085821
+        },
+        {
+          "lat": 49.4944907,
+          "lon": 6.0858621
+        },
+        {
+          "lat": 49.4945421,
+          "lon": 6.0858949
+        },
+        {
+          "lat": 49.4945658,
+          "lon": 6.0858068
+        },
+        {
+          "lat": 49.4945193,
+          "lon": 6.0857772
+        },
+        {
+          "lat": 49.4944721,
+          "lon": 6.0857471
+        },
+        {
+          "lat": 49.4945197,
+          "lon": 6.0855697
+        }
+      ],
+      "tags": {
+        "addr:city": "Dudelange",
+        "addr:housenumber": "214",
+        "addr:postcode": "3515",
+        "addr:street": "Route de Luxembourg",
+        "amenity": "fuel",
+        "brand": "Esso",
+        "brand:wikidata": "Q867662",
+        "building": "yes",
+        "compressed_air": "yes",
+        "name": "Esso",
+        "operator": "Esso EG"
+      }
+    },
+    {
+      "type": "way",
+      "id": 134421172,
+      "bounds": {
+        "minlat": 49.4916068,
+        "minlon": 6.0841076,
+        "maxlat": 49.4918591,
+        "maxlon": 6.0845303
+      },
+      "geometry": [
+        {
+          "lat": 49.4917497,
+          "lon": 6.0841076
+        },
+        {
+          "lat": 49.4916901,
+          "lon": 6.0843968
+        },
+        {
+          "lat": 49.4916283,
+          "lon": 6.0843666
+        },
+        {
+          "lat": 49.4916068,
+          "lon": 6.084471
+        },
+        {
+          "lat": 49.4917284,
+          "lon": 6.0845303
+        },
+        {
+          "lat": 49.4917493,
+          "lon": 6.0844287
+        },
+        {
+          "lat": 49.491799,
+          "lon": 6.0844529
+        },
+        {
+          "lat": 49.4918591,
+          "lon": 6.084161
+        },
+        {
+          "lat": 49.4917497,
+          "lon": 6.0841076
+        }
+      ],
+      "tags": {
+        "addr:city": "Dudelange",
+        "addr:housenumber": "132",
+        "addr:postcode": "3515",
+        "addr:street": "Route de Luxembourg",
+        "amenity": "fuel",
+        "brand": "Esso",
+        "brand:wikidata": "Q867662",
+        "building": "commercial",
+        "building:levels": "1",
+        "compressed_air": "yes",
+        "name": "Esso",
+        "opening_hours": "Mo-Su 06:00-22:00",
+        "operator": "Esso"
+      }
+    },
+    {
+      "type": "way",
+      "id": 134421205,
+      "bounds": {
+        "minlat": 49.4898311,
+        "minlon": 6.0832782,
+        "maxlat": 49.4901274,
+        "maxlon": 6.0835005
+      },
+      "geometry": [
+        {
+          "lat": 49.4901274,
+          "lon": 6.0834099
+        },
+        {
+          "lat": 49.4898899,
+          "lon": 6.0832782
+        },
+        {
+          "lat": 49.4898653,
+          "lon": 6.0833537
+        },
+        {
+          "lat": 49.4898481,
+          "lon": 6.0833406
+        },
+        {
+          "lat": 49.4898311,
+          "lon": 6.0833929
+        },
+        {
+          "lat": 49.4898407,
+          "lon": 6.0834003
+        },
+        {
+          "lat": 49.4898841,
+          "lon": 6.0834337
+        },
+        {
+          "lat": 49.4899152,
+          "lon": 6.0834577
+        },
+        {
+          "lat": 49.4899341,
+          "lon": 6.0833981
+        },
+        {
+          "lat": 49.4900872,
+          "lon": 6.0835005
+        },
+        {
+          "lat": 49.4901104,
+          "lon": 6.083483
+        },
+        {
+          "lat": 49.4901274,
+          "lon": 6.0834099
+        }
+      ],
+      "tags": {
+        "addr:city": "Dudelange",
+        "addr:housenumber": "106",
+        "addr:postcode": "3515",
+        "addr:street": "Route de Luxembourg",
+        "amenity": "fuel",
+        "brand": "Aral",
+        "brand:wikidata": "Q565734",
+        "brand:wikipedia": "en:Aral AG",
+        "building": "commercial",
+        "building:levels": "1",
+        "compressed_air": "yes",
+        "fuel:GTL_diesel": "yes",
+        "fuel:diesel": "yes",
+        "fuel:octane_95": "yes",
+        "fuel:octane_98": "yes",
+        "name": "Aral",
+        "opening_hours": "Mo-Su 06:00-22:00",
+        "operator": "Aral",
+        "ref:caclr": "54640",
+        "roof:levels": "0",
+        "roof:shape": "flat"
+      }
+    },
+    {
+      "type": "way",
+      "id": 147585966,
+      "bounds": {
+        "minlat": 49.5092365,
+        "minlon": 5.9749296,
+        "maxlat": 49.5099323,
+        "maxlon": 5.9753019
+      },
+      "geometry": [
+        {
+          "lat": 49.5099323,
+          "lon": 5.9749296
+        },
+        {
+          "lat": 49.5097965,
+          "lon": 5.9750022
+        },
+        {
+          "lat": 49.509335,
+          "lon": 5.9752496
+        },
+        {
+          "lat": 49.5092365,
+          "lon": 5.9753019
+        }
+      ],
+      "tags": {
+        "highway": "residential",
+        "lanes": "2",
+        "lit": "yes",
+        "maxspeed": "30",
+        "name": "Rue Laura Bassi",
+        "name:etymology:wikidata": "Q541652",
+        "parking:both": "yes",
+        "parking:both:orientation": "parallel",
+        "sidewalk": "both",
+        "surface": "asphalt"
+      }
+    },
+    {
+      "type": "way",
+      "id": 147585967,
+      "bounds": {
+        "minlat": 49.5081159,
+        "minlon": 5.968623,
+        "maxlat": 49.5081893,
+        "maxlon": 5.9708179
+      },
+      "geometry": [
+        {
+          "lat": 49.5081159,
+          "lon": 5.968623
+        },
+        {
+          "lat": 49.5081198,
+          "lon": 5.9687408
+        },
+        {
+          "lat": 49.5081411,
+          "lon": 5.9693753
+        },
+        {
+          "lat": 49.5081591,
+          "lon": 5.9699163
+        },
+        {
+          "lat": 49.5081869,
+          "lon": 5.9707476
+        },
+        {
+          "lat": 49.5081893,
+          "lon": 5.9708179
+        }
+      ],
+      "tags": {
+        "highway": "residential",
+        "lanes": "2",
+        "lit": "yes",
+        "maxspeed": "30",
+        "name": "Rue Guillaume Capus",
+        "name:etymology:wikidata": "Q13102884",
+        "parking:both": "lane",
+        "sidewalk": "both",
+        "surface": "asphalt"
+      }
+    },
+    {
+      "type": "way",
+      "id": 148565670,
+      "bounds": {
+        "minlat": 49.5079723,
+        "minlon": 5.9813274,
+        "maxlat": 49.5087242,
+        "maxlon": 5.9822862
+      },
+      "geometry": [
+        {
+          "lat": 49.5079723,
+          "lon": 5.9813274
+        },
+        {
+          "lat": 49.5082357,
+          "lon": 5.9815608
+        },
+        {
+          "lat": 49.5083685,
+          "lon": 5.9817103
+        },
+        {
+          "lat": 49.5085196,
+          "lon": 5.9819122
+        },
+        {
+          "lat": 49.5086442,
+          "lon": 5.9821247
+        },
+        {
+          "lat": 49.5087242,
+          "lon": 5.9822862
+        }
+      ],
+      "tags": {
+        "hgv": "destination",
+        "highway": "residential",
+        "lanes": "1",
+        "lit": "yes",
+        "maxspeed": "30",
+        "name": "Rue de l'Aérodrome",
+        "oneway": "yes",
+        "parking:right": "yes",
+        "sidewalk": "both",
+        "source:width": "ARCore",
+        "surface": "asphalt",
+        "width": "4.8"
+      }
+    },
+    {
+      "type": "way",
+      "id": 195553869,
+      "bounds": {
+        "minlat": 49.5094859,
+        "minlon": 6.1545005,
+        "maxlat": 49.5096506,
+        "maxlon": 6.1548444
+      },
+      "geometry": [
+        {
+          "lat": 49.5095531,
+          "lon": 6.1548444
+        },
+        {
+          "lat": 49.5094859,
+          "lon": 6.154636
+        },
+        {
+          "lat": 49.5095739,
+          "lon": 6.1545685
+        },
+        {
+          "lat": 49.5095629,
+          "lon": 6.1545345
+        },
+        {
+          "lat": 49.5096073,
+          "lon": 6.1545005
+        },
+        {
+          "lat": 49.5096347,
+          "lon": 6.1545852
+        },
+        {
+          "lat": 49.5096249,
+          "lon": 6.1545927
+        },
+        {
+          "lat": 49.5096407,
+          "lon": 6.1546417
+        },
+        {
+          "lat": 49.5096303,
+          "lon": 6.1546496
+        },
+        {
+          "lat": 49.5096506,
+          "lon": 6.1547125
+        },
+        {
+          "lat": 49.5096249,
+          "lon": 6.1547322
+        },
+        {
+          "lat": 49.5096397,
+          "lon": 6.1547781
+        },
+        {
+          "lat": 49.5095531,
+          "lon": 6.1548444
+        }
+      ],
+      "tags": {
+        "addr:city": "Hellange",
+        "addr:housenumber": "25",
+        "addr:postcode": "3337",
+        "addr:street": "Munnereferstrooss",
+        "amenity": "fuel",
+        "brand": "Esso",
+        "brand:wikidata": "Q867662",
+        "brand:wikipedia": "en:Esso",
+        "building": "roof",
+        "fuel:diesel": "yes",
+        "fuel:octane_95": "yes",
+        "fuel:octane_98": "yes",
+        "name": "Esso",
+        "operator": "Esso"
+      }
+    },
+    {
+      "type": "way",
+      "id": 218895620,
+      "bounds": {
+        "minlat": 49.4817801,
+        "minlon": 6.1003532,
+        "maxlat": 49.482749,
+        "maxlon": 6.1027366
+      },
+      "geometry": [
+        {
+          "lat": 49.4825652,
+          "lon": 6.1027366
+        },
+        {
+          "lat": 49.4825676,
+          "lon": 6.102575
+        },
+        {
+          "lat": 49.4825717,
+          "lon": 6.1022166
+        },
+        {
+          "lat": 49.4825822,
+          "lon": 6.1021382
+        },
+        {
+          "lat": 49.482607,
+          "lon": 6.1020845
+        },
+        {
+          "lat": 49.4827281,
+          "lon": 6.1019826
+        },
+        {
+          "lat": 49.482749,
+          "lon": 6.1019236
+        },
+        {
+          "lat": 49.4827473,
+          "lon": 6.1018552
+        },
+        {
+          "lat": 49.4826419,
+          "lon": 6.101194
+        },
+        {
+          "lat": 49.4824666,
+          "lon": 6.1004203
+        },
+        {
+          "lat": 49.4824348,
+          "lon": 6.1003615
+        },
+        {
+          "lat": 49.4823879,
+          "lon": 6.1003532
+        },
+        {
+          "lat": 49.4817801,
+          "lon": 6.100667
+        }
+      ],
+      "tags": {
+        "highway": "residential",
+        "lanes": "1",
+        "lit": "yes",
+        "maxspeed": "30",
+        "maxspeed:type": "LU:zone30",
+        "name": "Rue Marie Berg-Clausse",
+        "name:etymology:wikidata": "Q62008309",
+        "oneway": "yes",
+        "parking:left": "lane",
+        "parking:right": "no",
+        "sidewalk": "both",
+        "surface": "asphalt"
+      }
+    },
+    {
+      "type": "way",
+      "id": 248085232,
+      "bounds": {
+        "minlat": 49.5093697,
+        "minlon": 6.0114065,
+        "maxlat": 49.5098069,
+        "maxlon": 6.0119573
+      },
+      "geometry": [
+        {
+          "lat": 49.5097465,
+          "lon": 6.0114065
+        },
+        {
+          "lat": 49.5095237,
+          "lon": 6.0115895
+        },
+        {
+          "lat": 49.5095154,
+          "lon": 6.011564
+        },
+        {
+          "lat": 49.509474,
+          "lon": 6.0115908
+        },
+        {
+          "lat": 49.5093697,
+          "lon": 6.0117236
+        },
+        {
+          "lat": 49.5094864,
+          "lon": 6.0119573
+        },
+        {
+          "lat": 49.5096464,
+          "lon": 6.0117323
+        },
+        {
+          "lat": 49.5096713,
+          "lon": 6.0118047
+        },
+        {
+          "lat": 49.509772,
+          "lon": 6.0117372
+        },
+        {
+          "lat": 49.5097534,
+          "lon": 6.011667
+        },
+        {
+          "lat": 49.5098069,
+          "lon": 6.0116173
+        },
+        {
+          "lat": 49.5097465,
+          "lon": 6.0114065
+        }
+      ],
+      "tags": {
+        "addr:city": "Schifflange",
+        "addr:housenumber": "26",
+        "addr:postcode": "3858",
+        "addr:street": "Rue Denis Netgen",
+        "amenity": "fuel",
+        "brand": "Aral",
+        "brand:wikidata": "Q565734",
+        "building": "yes",
+        "name": "Aral Schëffléng",
+        "operator": "Aral",
+        "ref:caclr": "230968"
+      }
+    },
+    {
+      "type": "way",
+      "id": 250526205,
+      "bounds": {
+        "minlat": 49.5114742,
+        "minlon": 6.0012649,
+        "maxlat": 49.5116034,
+        "maxlon": 6.001633
+      },
+      "geometry": [
+        {
+          "lat": 49.5115473,
+          "lon": 6.0012649
+        },
+        {
+          "lat": 49.5116034,
+          "lon": 6.0016042
+        },
+        {
+          "lat": 49.5115269,
+          "lon": 6.001633
+        },
+        {
+          "lat": 49.5114742,
+          "lon": 6.0013014
+        },
+        {
+          "lat": 49.5115473,
+          "lon": 6.0012649
+        }
+      ],
+      "tags": {
+        "amenity": "fuel",
+        "building": "yes",
+        "layer": "1"
+      }
+    },
+    {
+      "type": "way",
+      "id": 323564397,
+      "bounds": {
+        "minlat": 49.5081893,
+        "minlon": 5.9708179,
+        "maxlat": 49.509856,
+        "maxlon": 5.9711679
+      },
+      "geometry": [
+        {
+          "lat": 49.5081893,
+          "lon": 5.9708179
+        },
+        {
+          "lat": 49.5086534,
+          "lon": 5.9709676
+        },
+        {
+          "lat": 49.5092738,
+          "lon": 5.9711538
+        },
+        {
+          "lat": 49.5093347,
+          "lon": 5.9711679
+        },
+        {
+          "lat": 49.5095927,
+          "lon": 5.9711603
+        },
+        {
+          "lat": 49.509856,
+          "lon": 5.9711526
+        }
+      ],
+      "tags": {
+        "highway": "residential",
+        "lane_markings": "no",
+        "lit": "yes",
+        "name": "Rue Marcelle Dauphin",
+        "name:etymology:wikidata": "Q19859318",
+        "parking:both": "lane",
+        "sidewalk": "both",
+        "surface": "asphalt",
+        "width": "5"
+      }
+    },
+    {
+      "type": "way",
+      "id": 379918641,
+      "bounds": {
+        "minlat": 49.4852124,
+        "minlon": 6.088188,
+        "maxlat": 49.4863193,
+        "maxlon": 6.0906835
+      },
+      "geometry": [
+        {
+          "lat": 49.486307,
+          "lon": 6.0906835
+        },
+        {
+          "lat": 49.4863107,
+          "lon": 6.0904989
+        },
+        {
+          "lat": 49.4863193,
+          "lon": 6.0900346
+        },
+        {
+          "lat": 49.486296,
+          "lon": 6.0898633
+        },
+        {
+          "lat": 49.4862524,
+          "lon": 6.0897023
+        },
+        {
+          "lat": 49.4861809,
+          "lon": 6.0895707
+        },
+        {
+          "lat": 49.4858855,
+          "lon": 6.0890758
+        },
+        {
+          "lat": 49.4858533,
+          "lon": 6.089025
+        },
+        {
+          "lat": 49.4858063,
+          "lon": 6.088961
+        },
+        {
+          "lat": 49.4857679,
+          "lon": 6.0889088
+        },
+        {
+          "lat": 49.4856013,
+          "lon": 6.0886839
+        },
+        {
+          "lat": 49.4853044,
+          "lon": 6.0882799
+        },
+        {
+          "lat": 49.4852124,
+          "lon": 6.088188
+        }
+      ],
+      "tags": {
+        "cycleway:both": "no",
+        "highway": "residential",
+        "lanes": "2",
+        "lit": "yes",
+        "maxspeed": "50",
+        "name": "Rue du Parc",
+        "parking:both": "parallel",
+        "sidewalk": "both",
+        "sidewalk:both:surface": "paving_stones",
+        "surface": "asphalt"
+      }
+    },
+    {
+      "type": "way",
+      "id": 381767906,
+      "bounds": {
+        "minlat": 49.5069813,
+        "minlon": 6.011558,
+        "maxlat": 49.5077742,
+        "maxlon": 6.0118805
+      },
+      "geometry": [
+        {
+          "lat": 49.5069813,
+          "lon": 6.0118805
+        },
+        {
+          "lat": 49.5071005,
+          "lon": 6.0118296
+        },
+        {
+          "lat": 49.5076901,
+          "lon": 6.0115585
+        },
+        {
+          "lat": 49.5077742,
+          "lon": 6.011558
+        }
+      ],
+      "tags": {
+        "description": "vun N°1 bis 50 Weist op e fréieren Haff am Mëddendall",
+        "highway": "residential",
+        "lanes": "2",
+        "maxspeed": "30",
+        "name": "Rue de Hédange",
+        "name:lb": "Héidénger Strooss",
+        "parking:right": "yes",
+        "parking:right:orientation": "parallel",
+        "sidewalk": "both",
+        "surface": "asphalt"
+      }
+    },
+    {
+      "type": "way",
+      "id": 381988735,
+      "bounds": {
+        "minlat": 49.5083497,
+        "minlon": 5.9753019,
+        "maxlat": 49.5092365,
+        "maxlon": 5.9757457
+      },
+      "geometry": [
+        {
+          "lat": 49.5092365,
+          "lon": 5.9753019
+        },
+        {
+          "lat": 49.5091229,
+          "lon": 5.9753614
+        },
+        {
+          "lat": 49.509097,
+          "lon": 5.9753749
+        },
+        {
+          "lat": 49.5086818,
+          "lon": 5.975597
+        },
+        {
+          "lat": 49.5084125,
+          "lon": 5.9757311
+        },
+        {
+          "lat": 49.5083497,
+          "lon": 5.9757457
+        }
+      ],
+      "tags": {
+        "highway": "residential",
+        "lanes": "2",
+        "lit": "yes",
+        "maxspeed": "30",
+        "name": "Rue Laura Bassi",
+        "name:etymology:wikidata": "Q541652",
+        "parking:both": "yes",
+        "parking:both:orientation": "parallel",
+        "sidewalk": "both",
+        "surface": "asphalt"
+      }
+    },
+    {
+      "type": "way",
+      "id": 383501909,
+      "bounds": {
+        "minlat": 49.5077742,
+        "minlon": 6.0113196,
+        "maxlat": 49.5083735,
+        "maxlon": 6.011558
+      },
+      "geometry": [
+        {
+          "lat": 49.5077742,
+          "lon": 6.011558
+        },
+        {
+          "lat": 49.5083328,
+          "lon": 6.0113494
+        },
+        {
+          "lat": 49.5083735,
+          "lon": 6.0113196
+        }
+      ],
+      "tags": {
+        "description": "vun N°1 bis 50 Weist op e fréieren Haff am Mëddendall",
+        "highway": "residential",
+        "lanes": "2",
+        "name": "Rue de Hédange",
+        "name:lb": "Héidénger Strooss",
+        "parking:left": "yes",
+        "parking:left:orientation": "parallel",
+        "sidewalk": "both",
+        "surface": "asphalt"
+      }
+    },
+    {
+      "type": "way",
+      "id": 383805343,
+      "bounds": {
+        "minlat": 49.5013575,
+        "minlon": 5.9370981,
+        "maxlat": 49.5013763,
+        "maxlon": 5.938361
+      },
+      "geometry": [
+        {
+          "lat": 49.5013763,
+          "lon": 5.938361
+        },
+        {
+          "lat": 49.5013646,
+          "lon": 5.9376607
+        },
+        {
+          "lat": 49.5013575,
+          "lon": 5.9370981
+        }
+      ],
+      "tags": {
+        "hgv": "destination",
+        "highway": "secondary",
+        "lanes": "2",
+        "lit": "yes",
+        "maxspeed": "50",
+        "name": "Rue de l'Usine",
+        "parking:right": "yes",
+        "parking:right:orientation": "parallel",
+        "ref": "CR 168",
+        "sidewalk": "left",
+        "surface": "asphalt"
+      }
+    },
+    {
+      "type": "way",
+      "id": 388116314,
+      "bounds": {
+        "minlat": 49.5067651,
+        "minlon": 5.9585401,
+        "maxlat": 49.5069932,
+        "maxlon": 5.9588972
+      },
+      "geometry": [
+        {
+          "lat": 49.5069932,
+          "lon": 5.9587762
+        },
+        {
+          "lat": 49.5069061,
+          "lon": 5.9588972
+        },
+        {
+          "lat": 49.5067651,
+          "lon": 5.9586567
+        },
+        {
+          "lat": 49.506855,
+          "lon": 5.9585401
+        },
+        {
+          "lat": 49.5069932,
+          "lon": 5.9587762
+        }
+      ],
+      "tags": {
+        "addr:city": "Esch-sur-Alzette",
+        "addr:housenumber": "306",
+        "addr:postcode": "4083",
+        "addr:street": "Boulevard Charles de Gaulle",
+        "amenity": "fuel",
+        "brand": "Esso",
+        "brand:wikidata": "Q867662",
+        "building": "yes",
+        "compressed_air": "yes",
+        "name": "Esso Charles de Gaulle",
+        "ref:caclr": "60957",
+        "wall": "no"
+      }
+    },
+    {
+      "type": "way",
+      "id": 388116315,
+      "bounds": {
+        "minlat": 49.5069515,
+        "minlon": 5.9583186,
+        "maxlat": 49.5071361,
+        "maxlon": 5.9586057
+      },
+      "geometry": [
+        {
+          "lat": 49.5071361,
+          "lon": 5.9584731
+        },
+        {
+          "lat": 49.5070405,
+          "lon": 5.9586057
+        },
+        {
+          "lat": 49.5069515,
+          "lon": 5.9584527
+        },
+        {
+          "lat": 49.50705,
+          "lon": 5.9583186
+        },
+        {
+          "lat": 49.5071361,
+          "lon": 5.9584731
+        }
+      ],
+      "tags": {
+        "amenity": "fuel",
+        "brand": "Esso",
+        "brand:wikidata": "Q867662",
+        "building": "yes",
+        "compressed_air": "yes",
+        "name": "Esso"
+      }
+    },
+    {
+      "type": "way",
+      "id": 389379325,
+      "bounds": {
+        "minlat": 49.4987946,
+        "minlon": 5.9836623,
+        "maxlat": 49.5006898,
+        "maxlon": 5.9851547
+      },
+      "geometry": [
+        {
+          "lat": 49.5006898,
+          "lon": 5.9836623
+        },
+        {
+          "lat": 49.4988773,
+          "lon": 5.9851335
+        },
+        {
+          "lat": 49.4987946,
+          "lon": 5.9851547
+        }
+      ],
+      "tags": {
+        "highway": "residential",
+        "lanes": "2",
+        "lit": "yes",
+        "maxspeed": "30",
+        "name": "Rue Émile Mayrisch",
+        "name:etymology:wikidata": "Q463694",
+        "parking:both": "yes",
+        "parking:both:orientation": "parallel",
+        "parking:lane:both:parallel": "street_side",
+        "sidewalk": "both",
+        "surface": "asphalt"
+      }
+    },
+    {
+      "type": "way",
+      "id": 390038671,
+      "bounds": {
+        "minlat": 49.5088665,
+        "minlon": 5.9825735,
+        "maxlat": 49.5092234,
+        "maxlon": 5.9836651
+      },
+      "geometry": [
+        {
+          "lat": 49.5088665,
+          "lon": 5.9825735
+        },
+        {
+          "lat": 49.5089655,
+          "lon": 5.9827584
+        },
+        {
+          "lat": 49.5089945,
+          "lon": 5.9828323
+        },
+        {
+          "lat": 49.5090831,
+          "lon": 5.9831037
+        },
+        {
+          "lat": 49.509137,
+          "lon": 5.9832915
+        },
+        {
+          "lat": 49.5091893,
+          "lon": 5.9835175
+        },
+        {
+          "lat": 49.5092234,
+          "lon": 5.9836651
+        }
+      ],
+      "tags": {
+        "hgv": "destination",
+        "highway": "residential",
+        "lanes": "1",
+        "lit": "yes",
+        "maxspeed": "30",
+        "name": "Rue de l'Aérodrome",
+        "oneway": "yes",
+        "parking:right": "yes",
+        "sidewalk": "both",
+        "surface": "asphalt",
+        "width": "3"
+      }
+    },
+    {
+      "type": "way",
+      "id": 439152054,
+      "bounds": {
+        "minlat": 49.4589315,
+        "minlon": 6.0321741,
+        "maxlat": 49.4594401,
+        "maxlon": 6.0325684
+      },
+      "geometry": [
+        {
+          "lat": 49.4589315,
+          "lon": 6.0321741
+        },
+        {
+          "lat": 49.4590179,
+          "lon": 6.0322258
+        },
+        {
+          "lat": 49.4593773,
+          "lon": 6.0324819
+        },
+        {
+          "lat": 49.4594401,
+          "lon": 6.0325684
+        }
+      ],
+      "tags": {
+        "highway": "residential",
+        "lanes": "2",
+        "lit": "yes",
+        "maxspeed": "30",
+        "name": "Rue du Parc",
+        "parking:both": "yes",
+        "sidewalk": "both",
+        "surface": "asphalt"
+      }
+    },
+    {
+      "type": "way",
+      "id": 586777919,
+      "bounds": {
+        "minlat": 49.4862524,
+        "minlon": 6.0894103,
+        "maxlat": 49.4877451,
+        "maxlon": 6.089908
+      },
+      "geometry": [
+        {
+          "lat": 49.4862524,
+          "lon": 6.0897023
+        },
+        {
+          "lat": 49.4863699,
+          "lon": 6.0895935
+        },
+        {
+          "lat": 49.4864726,
+          "lon": 6.089529
+        },
+        {
+          "lat": 49.4865878,
+          "lon": 6.0894795
+        },
+        {
+          "lat": 49.4868085,
+          "lon": 6.0894315
+        },
+        {
+          "lat": 49.486928,
+          "lon": 6.0894103
+        },
+        {
+          "lat": 49.487034,
+          "lon": 6.0894253
+        },
+        {
+          "lat": 49.4871262,
+          "lon": 6.0894642
+        },
+        {
+          "lat": 49.4872577,
+          "lon": 6.0895694
+        },
+        {
+          "lat": 49.4872872,
+          "lon": 6.08959
+        },
+        {
+          "lat": 49.4875012,
+          "lon": 6.0897379
+        },
+        {
+          "lat": 49.4877451,
+          "lon": 6.089908
+        }
+      ],
+      "tags": {
+        "highway": "living_street",
+        "lit": "yes",
+        "maxspeed": "20",
+        "name": "Rue du Stade John F. Kennedy",
+        "name:etymology:wikidata": "Q9696",
+        "parking:both": "parallel",
+        "sidewalk": "both",
+        "surface": "asphalt",
+        "width": "9"
+      }
+    },
+    {
+      "type": "way",
+      "id": 601328391,
+      "bounds": {
+        "minlat": 49.4910033,
+        "minlon": 6.0874303,
+        "maxlat": 49.4916809,
+        "maxlon": 6.0881672
+      },
+      "geometry": [
+        {
+          "lat": 49.4910033,
+          "lon": 6.0874303
+        },
+        {
+          "lat": 49.4910795,
+          "lon": 6.0874832
+        },
+        {
+          "lat": 49.4911749,
+          "lon": 6.0875495
+        },
+        {
+          "lat": 49.4912307,
+          "lon": 6.0875893
+        },
+        {
+          "lat": 49.4913356,
+          "lon": 6.0876918
+        },
+        {
+          "lat": 49.4914407,
+          "lon": 6.087801
+        },
+        {
+          "lat": 49.4916259,
+          "lon": 6.0880308
+        },
+        {
+          "lat": 49.4916809,
+          "lon": 6.0881672
+        }
+      ],
+      "tags": {
+        "highway": "residential",
+        "lanes": "2",
+        "lit": "yes",
+        "maxspeed": "30",
+        "name": "Route de Burange",
+        "parking:lane:left": "parallel",
+        "sidewalk": "both",
+        "sidewalk:both:surface": "paving_stones",
+        "surface": "asphalt"
+      }
+    },
+    {
+      "type": "way",
+      "id": 601331295,
+      "bounds": {
+        "minlat": 49.4896043,
+        "minlon": 6.0866873,
+        "maxlat": 49.4897415,
+        "maxlon": 6.0870924
+      },
+      "geometry": [
+        {
+          "lat": 49.4896043,
+          "lon": 6.0870924
+        },
+        {
+          "lat": 49.4897415,
+          "lon": 6.0866873
+        }
+      ],
+      "tags": {
+        "highway": "residential",
+        "incline": "up",
+        "lane_markings": "no",
+        "lanes": "2",
+        "lit": "yes",
+        "maxspeed": "30",
+        "name": "Rue du Berger",
+        "parking:lane:left": "parallel",
+        "sidewalk": "left",
+        "sidewalk:left:surface": "paving_stones",
+        "surface": "asphalt"
+      }
+    },
+    {
+      "type": "way",
+      "id": 688177218,
+      "bounds": {
+        "minlat": 49.5054188,
+        "minlon": 5.9612533,
+        "maxlat": 49.5057773,
+        "maxlon": 5.9618149
+      },
+      "geometry": [
+        {
+          "lat": 49.5057773,
+          "lon": 5.9614553
+        },
+        {
+          "lat": 49.50565,
+          "lon": 5.9612533
+        },
+        {
+          "lat": 49.5054908,
+          "lon": 5.9614997
+        },
+        {
+          "lat": 49.5054559,
+          "lon": 5.9614436
+        },
+        {
+          "lat": 49.5054188,
+          "lon": 5.9615002
+        },
+        {
+          "lat": 49.5055864,
+          "lon": 5.9617599
+        },
+        {
+          "lat": 49.5056037,
+          "lon": 5.9617332
+        },
+        {
+          "lat": 49.50565,
+          "lon": 5.9618149
+        },
+        {
+          "lat": 49.5056697,
+          "lon": 5.9617869
+        },
+        {
+          "lat": 49.5056174,
+          "lon": 5.9617063
+        },
+        {
+          "lat": 49.5057773,
+          "lon": 5.9614553
+        }
+      ],
+      "tags": {
+        "amenity": "fuel",
+        "building": "yes",
+        "fuel:biogas": "yes",
+        "fuel:diesel": "yes",
+        "name": "TICE - Station service"
+      }
+    },
+    {
+      "type": "way",
+      "id": 764678499,
+      "bounds": {
+        "minlat": 49.4889358,
+        "minlon": 5.9762382,
+        "maxlat": 49.4891434,
+        "maxlon": 5.9764784
+      },
+      "geometry": [
+        {
+          "lat": 49.489131,
+          "lon": 5.9762382
+        },
+        {
+          "lat": 49.4891434,
+          "lon": 5.9764515
+        },
+        {
+          "lat": 49.4889482,
+          "lon": 5.9764784
+        },
+        {
+          "lat": 49.4889358,
+          "lon": 5.9762651
+        },
+        {
+          "lat": 49.488961,
+          "lon": 5.9762616
+        },
+        {
+          "lat": 49.489131,
+          "lon": 5.9762382
+        }
+      ],
+      "tags": {
+        "addr:city": "Esch-sur-Alzette",
+        "addr:country": "LU",
+        "addr:housenumber": "59",
+        "addr:postcode": "4018",
+        "addr:street": "Rue d'Audun",
+        "amenity": "fuel",
+        "brand": "Esso",
+        "brand:wikidata": "Q867662",
+        "building": "yes",
+        "name": "Esso Terre Rouge",
+        "note": "No house number",
+        "operator": "Esso",
+        "ref:caclr": "174834"
+      }
+    },
+    {
+      "type": "way",
+      "id": 787971685,
+      "bounds": {
+        "minlat": 49.4880531,
+        "minlon": 6.0885936,
+        "maxlat": 49.4885519,
+        "maxlon": 6.0901071
+      },
+      "geometry": [
+        {
+          "lat": 49.4885519,
+          "lon": 6.0885936
+        },
+        {
+          "lat": 49.4884803,
+          "lon": 6.0888111
+        },
+        {
+          "lat": 49.4883958,
+          "lon": 6.0890673
+        },
+        {
+          "lat": 49.4880531,
+          "lon": 6.0901071
+        }
+      ],
+      "tags": {
+        "highway": "residential",
+        "lanes": "2",
+        "lit": "yes",
+        "maxspeed": "30",
+        "name": "Rue Pierre Krier",
+        "name:etymology:wikidata": "Q13104571",
+        "parking:both": "parallel",
+        "sidewalk": "both",
+        "sidewalk:both:surface": "paving_stones",
+        "surface": "asphalt"
+      }
+    },
+    {
+      "type": "way",
+      "id": 787971686,
+      "bounds": {
+        "minlat": 49.4885519,
+        "minlon": 6.0872492,
+        "maxlat": 49.4889848,
+        "maxlon": 6.0885936
+      },
+      "geometry": [
+        {
+          "lat": 49.4889848,
+          "lon": 6.0872492
+        },
+        {
+          "lat": 49.4888706,
+          "lon": 6.0876039
+        },
+        {
+          "lat": 49.4888565,
+          "lon": 6.0876478
+        },
+        {
+          "lat": 49.4885519,
+          "lon": 6.0885936
+        }
+      ],
+      "tags": {
+        "highway": "residential",
+        "lanes": "2",
+        "lit": "yes",
+        "maxspeed": "30",
+        "name": "Rue Pierre Krier",
+        "name:etymology:wikidata": "Q13104571",
+        "parking:both": "parallel",
+        "sidewalk": "both",
+        "sidewalk:both:surface": "paving_stones",
+        "surface": "asphalt"
+      }
+    },
+    {
+      "type": "way",
+      "id": 921558798,
+      "bounds": {
+        "minlat": 49.4757347,
+        "minlon": 5.9603566,
+        "maxlat": 49.4758297,
+        "maxlon": 5.9605048
+      },
+      "geometry": [
+        {
+          "lat": 49.4758297,
+          "lon": 5.9603566
+        },
+        {
+          "lat": 49.4757347,
+          "lon": 5.9605048
+        }
+      ],
+      "tags": {
+        "highway": "residential",
+        "lanes": "1",
+        "lit": "yes",
+        "maxspeed": "30",
+        "name": "Rue Saint-Laurent",
+        "oneway": "no",
+        "parking:condition:left": "free",
+        "parking:lane:left:parallel": "on_kerb",
+        "parking:left": "yes",
+        "parking:left:orientation": "parallel",
+        "ref:FR:FANTOIR": "570380480W",
+        "source:maxspeed": "FR:zone30",
+        "surface": "asphalt",
+        "zone:maxspeed": "FR:30"
+      }
+    },
+    {
+      "type": "way",
+      "id": 978212929,
+      "bounds": {
+        "minlat": 49.4888079,
+        "minlon": 6.0858666,
+        "maxlat": 49.4892841,
+        "maxlon": 6.0863198
+      },
+      "geometry": [
+        {
+          "lat": 49.4888079,
+          "lon": 6.0858666
+        },
+        {
+          "lat": 49.4892841,
+          "lon": 6.0863198
+        }
+      ],
+      "tags": {
+        "highway": "residential",
+        "lanes": "2",
+        "lit": "yes",
+        "maxspeed": "30",
+        "name": "Route de Burange",
+        "parking:right": "parallel",
+        "sidewalk": "both",
+        "sidewalk:both:surface": "paving_stones",
+        "surface": "asphalt"
+      }
+    },
+    {
+      "type": "way",
+      "id": 980939108,
+      "bounds": {
+        "minlat": 49.475685,
+        "minlon": 6.0342065,
+        "maxlat": 49.4760985,
+        "maxlon": 6.0342696
+      },
+      "geometry": [
+        {
+          "lat": 49.4760985,
+          "lon": 6.0342696
+        },
+        {
+          "lat": 49.4758815,
+          "lon": 6.0342273
+        },
+        {
+          "lat": 49.475685,
+          "lon": 6.0342065
+        }
+      ],
+      "tags": {
+        "highway": "residential",
+        "lit": "yes",
+        "maxspeed": "30",
+        "name": "Rue de l'Industrie",
+        "parking:lane:left": "parallel",
+        "surface": "asphalt"
+      }
+    },
+    {
+      "type": "way",
+      "id": 980939109,
+      "bounds": {
+        "minlat": 49.4771093,
+        "minlon": 6.0344848,
+        "maxlat": 49.4776705,
+        "maxlon": 6.0345706
+      },
+      "geometry": [
+        {
+          "lat": 49.4776705,
+          "lon": 6.0345706
+        },
+        {
+          "lat": 49.4771093,
+          "lon": 6.0344848
+        }
+      ],
+      "tags": {
+        "highway": "residential",
+        "lit": "yes",
+        "maxspeed": "30",
+        "name": "Rue de l'Industrie",
+        "parking:left": "yes",
+        "parking:left:orientation": "parallel",
+        "surface": "asphalt"
+      }
+    },
+    {
+      "type": "way",
+      "id": 980939111,
+      "bounds": {
+        "minlat": 49.4788499,
+        "minlon": 6.0347007,
+        "maxlat": 49.4794816,
+        "maxlon": 6.0347487
+      },
+      "geometry": [
+        {
+          "lat": 49.4794816,
+          "lon": 6.0347487
+        },
+        {
+          "lat": 49.4792555,
+          "lon": 6.0347061
+        },
+        {
+          "lat": 49.4791923,
+          "lon": 6.0347007
+        },
+        {
+          "lat": 49.4788499,
+          "lon": 6.034725
+        }
+      ],
+      "tags": {
+        "highway": "residential",
+        "lit": "yes",
+        "maxspeed": "30",
+        "name": "Rue de l'Industrie",
+        "parking:left": "yes",
+        "parking:left:orientation": "parallel",
+        "surface": "asphalt"
+      }
+    },
+    {
+      "type": "way",
+      "id": 988093349,
+      "bounds": {
+        "minlat": 49.487811,
+        "minlon": 6.0897985,
+        "maxlat": 49.4879486,
+        "maxlon": 6.0900105
+      },
+      "geometry": [
+        {
+          "lat": 49.4878249,
+          "lon": 6.0899683
+        },
+        {
+          "lat": 49.4878409,
+          "lon": 6.0899919
+        },
+        {
+          "lat": 49.487861,
+          "lon": 6.0900065
+        },
+        {
+          "lat": 49.487883,
+          "lon": 6.0900105
+        },
+        {
+          "lat": 49.4879047,
+          "lon": 6.0900036
+        },
+        {
+          "lat": 49.4879245,
+          "lon": 6.0899857
+        },
+        {
+          "lat": 49.4879394,
+          "lon": 6.0899587
+        },
+        {
+          "lat": 49.4879477,
+          "lon": 6.0899257
+        },
+        {
+          "lat": 49.4879486,
+          "lon": 6.0898903
+        },
+        {
+          "lat": 49.4879418,
+          "lon": 6.0898564
+        },
+        {
+          "lat": 49.4879281,
+          "lon": 6.0898279
+        },
+        {
+          "lat": 49.4879092,
+          "lon": 6.0898078
+        },
+        {
+          "lat": 49.487887,
+          "lon": 6.0897985
+        },
+        {
+          "lat": 49.487864,
+          "lon": 6.0898008
+        },
+        {
+          "lat": 49.4878428,
+          "lon": 6.0898147
+        },
+        {
+          "lat": 49.4878258,
+          "lon": 6.0898385
+        },
+        {
+          "lat": 49.4878148,
+          "lon": 6.0898696
+        },
+        {
+          "lat": 49.487811,
+          "lon": 6.0899045
+        },
+        {
+          "lat": 49.4878146,
+          "lon": 6.0899382
+        },
+        {
+          "lat": 49.4878249,
+          "lon": 6.0899683
+        }
+      ],
+      "tags": {
+        "highway": "living_street",
+        "lit": "yes",
+        "maxspeed": "20",
+        "name": "Rue du Stade John F. Kennedy",
+        "name:etymology:wikidata": "Q9696",
+        "oneway": "yes",
+        "parking:both": "yes",
+        "parking:both:orientation": "parallel",
+        "sidewalk": "separate",
+        "source:width": "ARCore",
+        "surface": "asphalt",
+        "width": "6.1"
+      }
+    },
+    {
+      "type": "way",
+      "id": 996880100,
+      "bounds": {
+        "minlat": 49.4877451,
+        "minlon": 6.0899045,
+        "maxlat": 49.487811,
+        "maxlon": 6.089908
+      },
+      "geometry": [
+        {
+          "lat": 49.4877451,
+          "lon": 6.089908
+        },
+        {
+          "lat": 49.487811,
+          "lon": 6.0899045
+        }
+      ],
+      "tags": {
+        "highway": "living_street",
+        "lit": "yes",
+        "maxspeed": "20",
+        "name": "Rue du Stade John F. Kennedy",
+        "name:etymology:wikidata": "Q9696",
+        "parking:both": "yes",
+        "parking:both:orientation": "parallel",
+        "sidewalk": "separate",
+        "surface": "asphalt",
+        "width": "6"
+      }
+    },
+    {
+      "type": "way",
+      "id": 1005847021,
+      "bounds": {
+        "minlat": 49.4813467,
+        "minlon": 6.0990456,
+        "maxlat": 49.4817819,
+        "maxlon": 6.1019595
+      },
+      "geometry": [
+        {
+          "lat": 49.4814787,
+          "lon": 6.0990456
+        },
+        {
+          "lat": 49.481527,
+          "lon": 6.0990597
+        },
+        {
+          "lat": 49.4815593,
+          "lon": 6.0990885
+        },
+        {
+          "lat": 49.4815793,
+          "lon": 6.0991479
+        },
+        {
+          "lat": 49.4815956,
+          "lon": 6.0996488
+        },
+        {
+          "lat": 49.4816277,
+          "lon": 6.0999052
+        },
+        {
+          "lat": 49.4816597,
+          "lon": 6.1001162
+        },
+        {
+          "lat": 49.4817801,
+          "lon": 6.100667
+        },
+        {
+          "lat": 49.4817819,
+          "lon": 6.1007521
+        },
+        {
+          "lat": 49.4817684,
+          "lon": 6.1008353
+        },
+        {
+          "lat": 49.4815327,
+          "lon": 6.1014614
+        },
+        {
+          "lat": 49.4814061,
+          "lon": 6.1018032
+        },
+        {
+          "lat": 49.4813467,
+          "lon": 6.1019595
+        }
+      ],
+      "tags": {
+        "highway": "residential",
+        "lanes": "2",
+        "lit": "yes",
+        "maxspeed": "30",
+        "maxspeed:type": "LU:zone30",
+        "name": "Rue Marthe Bigelbach-Fohrmann",
+        "name:etymology:wikidata": "Q16438951",
+        "oneway": "no",
+        "parking:left": "yes",
+        "parking:right": "yes",
+        "sidewalk": "both",
+        "surface": "asphalt"
+      }
+    },
+    {
+      "type": "way",
+      "id": 1016895127,
+      "bounds": {
+        "minlat": 49.4875739,
+        "minlon": 6.0901071,
+        "maxlat": 49.4880531,
+        "maxlon": 6.0914134
+      },
+      "geometry": [
+        {
+          "lat": 49.4880531,
+          "lon": 6.0901071
+        },
+        {
+          "lat": 49.4880263,
+          "lon": 6.0901797
+        },
+        {
+          "lat": 49.4875865,
+          "lon": 6.0913792
+        },
+        {
+          "lat": 49.4875739,
+          "lon": 6.0914134
+        }
+      ],
+      "tags": {
+        "highway": "residential",
+        "lanes": "2",
+        "lit": "yes",
+        "maxspeed": "30",
+        "name": "Rue Pierre Krier",
+        "name:etymology:wikidata": "Q13104571",
+        "parking:both": "yes",
+        "parking:both:orientation": "parallel",
+        "sidewalk": "both",
+        "sidewalk:both:surface": "paving_stones",
+        "surface": "asphalt"
+      }
+    },
+    {
+      "type": "way",
+      "id": 1065283776,
+      "bounds": {
+        "minlat": 49.5087242,
+        "minlon": 5.9822862,
+        "maxlat": 49.5088665,
+        "maxlon": 5.9825735
+      },
+      "geometry": [
+        {
+          "lat": 49.5087242,
+          "lon": 5.9822862
+        },
+        {
+          "lat": 49.5088316,
+          "lon": 5.9825029
+        },
+        {
+          "lat": 49.5088665,
+          "lon": 5.9825735
+        }
+      ],
+      "tags": {
+        "hgv": "destination",
+        "highway": "residential",
+        "lanes": "1",
+        "lit": "yes",
+        "maxspeed": "30",
+        "name": "Rue de l'Aérodrome",
+        "oneway": "yes",
+        "parking:both": "yes",
+        "sidewalk": "both",
+        "surface": "asphalt",
+        "width": "3"
+      }
+    },
+    {
+      "type": "way",
+      "id": 1065283782,
+      "bounds": {
+        "minlat": 49.5078199,
+        "minlon": 5.9793491,
+        "maxlat": 49.5091199,
+        "maxlon": 5.979407
+      },
+      "geometry": [
+        {
+          "lat": 49.5078199,
+          "lon": 5.979407
+        },
+        {
+          "lat": 49.5081247,
+          "lon": 5.9793934
+        },
+        {
+          "lat": 49.5082029,
+          "lon": 5.9793899
+        },
+        {
+          "lat": 49.5090429,
+          "lon": 5.9793525
+        },
+        {
+          "lat": 49.5091199,
+          "lon": 5.9793491
+        }
+      ],
+      "tags": {
+        "hgv": "destination",
+        "highway": "residential",
+        "lanes": "2",
+        "lit": "yes",
+        "maxspeed": "30",
+        "name": "Rue Nicolas Mannes",
+        "name:etymology:wikidata": "Q130479970",
+        "parking:right": "yes",
+        "sidewalk": "left",
+        "surface": "asphalt"
+      }
+    },
+    {
+      "type": "way",
+      "id": 1065283783,
+      "bounds": {
+        "minlat": 49.5091199,
+        "minlon": 5.9793327,
+        "maxlat": 49.5094306,
+        "maxlon": 5.9793491
+      },
+      "geometry": [
+        {
+          "lat": 49.5091199,
+          "lon": 5.9793491
+        },
+        {
+          "lat": 49.5094306,
+          "lon": 5.9793327
+        }
+      ],
+      "tags": {
+        "hgv": "destination",
+        "highway": "residential",
+        "lanes": "2",
+        "lit": "yes",
+        "maxspeed": "30",
+        "name": "Rue Nicolas Mannes",
+        "name:etymology:wikidata": "Q130479970",
+        "parking:right": "yes",
+        "sidewalk": "left",
+        "surface": "asphalt"
+      }
+    },
+    {
+      "type": "way",
+      "id": 1065283785,
+      "bounds": {
+        "minlat": 49.5082115,
+        "minlon": 5.9796686,
+        "maxlat": 49.5090512,
+        "maxlon": 5.9797209
+      },
+      "geometry": [
+        {
+          "lat": 49.5082115,
+          "lon": 5.9797209
+        },
+        {
+          "lat": 49.5090512,
+          "lon": 5.9796686
+        }
+      ],
+      "tags": {
+        "hgv": "destination",
+        "highway": "residential",
+        "lit": "yes",
+        "maxspeed": "30",
+        "name": "Rue Nicolas Mannes",
+        "name:etymology:wikidata": "Q130479970",
+        "oneway": "no",
+        "parking:left": "yes",
+        "sidewalk": "right",
+        "source:width": "ARCore",
+        "surface": "asphalt",
+        "width": "6.9"
+      }
+    },
+    {
+      "type": "way",
+      "id": 1083858614,
+      "bounds": {
+        "minlat": 49.467519,
+        "minlon": 5.957115,
+        "maxlat": 49.467687,
+        "maxlon": 5.9573638
+      },
+      "geometry": [
+        {
+          "lat": 49.467519,
+          "lon": 5.957359
+        },
+        {
+          "lat": 49.467523,
+          "lon": 5.957281
+        },
+        {
+          "lat": 49.4675259,
+          "lon": 5.9571967
+        },
+        {
+          "lat": 49.467575,
+          "lon": 5.957115
+        },
+        {
+          "lat": 49.467687,
+          "lon": 5.957209
+        },
+        {
+          "lat": 49.4676592,
+          "lon": 5.9572905
+        },
+        {
+          "lat": 49.4675831,
+          "lon": 5.9572202
+        },
+        {
+          "lat": 49.4675812,
+          "lon": 5.9573638
+        },
+        {
+          "lat": 49.467519,
+          "lon": 5.957359
+        }
+      ],
+      "tags": {
+        "amenity": "parking_space",
+        "capacity": "6",
+        "fee": "no",
+        "name": "Parking Chemin des Dames",
+        "parking:condition:right": "disc",
+        "parking:condition:right:maxstay": "2 h",
+        "parking:lane:right": "perpendicular",
+        "surface": "asphalt"
+      }
+    },
+    {
+      "type": "way",
+      "id": 1103002121,
+      "bounds": {
+        "minlat": 49.5081893,
+        "minlon": 5.9708179,
+        "maxlat": 49.5084428,
+        "maxlon": 5.9779149
+      },
+      "geometry": [
+        {
+          "lat": 49.5081893,
+          "lon": 5.9708179
+        },
+        {
+          "lat": 49.5081949,
+          "lon": 5.9709878
+        },
+        {
+          "lat": 49.5082066,
+          "lon": 5.9713427
+        },
+        {
+          "lat": 49.5082107,
+          "lon": 5.9714662
+        },
+        {
+          "lat": 49.5082275,
+          "lon": 5.9719847
+        },
+        {
+          "lat": 49.5082325,
+          "lon": 5.9721386
+        },
+        {
+          "lat": 49.5082482,
+          "lon": 5.9726208
+        },
+        {
+          "lat": 49.5082522,
+          "lon": 5.9727436
+        },
+        {
+          "lat": 49.5082675,
+          "lon": 5.9732164
+        },
+        {
+          "lat": 49.5082701,
+          "lon": 5.9732949
+        },
+        {
+          "lat": 49.5082708,
+          "lon": 5.9733184
+        },
+        {
+          "lat": 49.5082895,
+          "lon": 5.973893
+        },
+        {
+          "lat": 49.5082934,
+          "lon": 5.9740135
+        },
+        {
+          "lat": 49.5083071,
+          "lon": 5.9744335
+        },
+        {
+          "lat": 49.5083164,
+          "lon": 5.9747219
+        },
+        {
+          "lat": 49.5083174,
+          "lon": 5.9747504
+        },
+        {
+          "lat": 49.5083325,
+          "lon": 5.9752171
+        },
+        {
+          "lat": 49.5083364,
+          "lon": 5.9753351
+        },
+        {
+          "lat": 49.5083497,
+          "lon": 5.9757457
+        },
+        {
+          "lat": 49.5083668,
+          "lon": 5.9762717
+        },
+        {
+          "lat": 49.5083709,
+          "lon": 5.9763979
+        },
+        {
+          "lat": 49.5083881,
+          "lon": 5.9769264
+        },
+        {
+          "lat": 49.5083889,
+          "lon": 5.9769514
+        },
+        {
+          "lat": 49.5084093,
+          "lon": 5.9775789
+        },
+        {
+          "lat": 49.5084138,
+          "lon": 5.9777185
+        },
+        {
+          "lat": 49.5084251,
+          "lon": 5.9778479
+        },
+        {
+          "lat": 49.5084428,
+          "lon": 5.9779149
+        }
+      ],
+      "tags": {
+        "highway": "residential",
+        "lanes": "2",
+        "lit": "yes",
+        "maxspeed": "30",
+        "name": "Rue Guillaume Capus",
+        "name:etymology:wikidata": "Q13102884",
+        "parking:both": "lane",
+        "sidewalk": "both",
+        "surface": "asphalt"
+      }
+    },
+    {
+      "type": "way",
+      "id": 1124935344,
+      "bounds": {
+        "minlat": 49.4722,
+        "minlon": 5.9586336,
+        "maxlat": 49.4723566,
+        "maxlon": 5.9591403
+      },
+      "geometry": [
+        {
+          "lat": 49.4723566,
+          "lon": 5.9591403
+        },
+        {
+          "lat": 49.4722725,
+          "lon": 5.9588633
+        },
+        {
+          "lat": 49.4722,
+          "lon": 5.9586336
+        }
+      ],
+      "tags": {
+        "highway": "residential",
+        "name": "Rue de la Quielle",
+        "parking:condition:right": "disc",
+        "parking:condition:right:capacity": "12",
+        "parking:lane:left": "no",
+        "parking:lane:right": "marked"
+      }
+    },
+    {
+      "type": "way",
+      "id": 1137796471,
+      "bounds": {
+        "minlat": 49.5067845,
+        "minlon": 6.0100617,
+        "maxlat": 49.5072097,
+        "maxlon": 6.0102943
+      },
+      "geometry": [
+        {
+          "lat": 49.5072097,
+          "lon": 6.0102518
+        },
+        {
+          "lat": 49.5068194,
+          "lon": 6.0102943
+        },
+        {
+          "lat": 49.5068188,
+          "lon": 6.0102907
+        },
+        {
+          "lat": 49.5067845,
+          "lon": 6.0100859
+        },
+        {
+          "lat": 49.5071871,
+          "lon": 6.0100617
+        }
+      ],
+      "tags": {
+        "highway": "service",
+        "name": "Parking Rue Drusenheim",
+        "oneway": "yes",
+        "parking:both": "separate",
+        "service": "parking_aisle",
+        "surface": "asphalt"
+      }
+    }
+  ]
+}
