@@ -272,10 +272,11 @@ let localData;
 async function getLocal() {
   if (localData !== undefined) return localData;
   try {
-    const r = await fetch('dados.json');
-    if (!r.ok) throw new Error('sem ficheiro');
-    const j = await r.json();
-    if (!Array.isArray(j.elements)) throw new Error('formato');
+    let j = null;
+    for (const nome of ['dados.json', 'export.json']) {
+      try { const r = await fetch(nome); if (r.ok) { j = await r.json(); break; } } catch (e) {}
+    }
+    if (!j || !Array.isArray(j.elements)) throw new Error('sem ficheiro');
     let s = 90, w = 180, n = -90, e = -180;
     const eat = (la, lo) => { s = Math.min(s, la); n = Math.max(n, la); w = Math.min(w, lo); e = Math.max(e, lo); };
     j.elements.forEach(el => {
