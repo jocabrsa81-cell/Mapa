@@ -193,7 +193,48 @@ async function overpass(q) {
   return null;
 }
 
+// protege contra erros: nunca deixa a etiqueta presa em "a carregar…"
 async function loadPark() {
+  const wasBusy = busy;
+  try { await loadParkInner(); }
+  catch (err) {
+    lastFail = Date.now();
+    info.textContent = 'Erro na app: ' + (err && err.message ? err.message : err);
+  } finally { if (!wasBusy) busy = false; }
+}
+
+// toque num ponto ou linha: mostra o tipo e o nome
+const popup = new maplibregl.Popup({ closeButton: false, maxWidth: '240px' });
+map.on('click', ev => {
+  if (!ready) return;
+  const layers = ['poi-pontos', 'poi-fuel-far', 'fuel-ponto', 'fuel-area', 'park-L', 'park-R'].filter(id => map.getLayer(id));
+  const p = ev.point;
+  const f = map.queryRenderedFeatures([[p.x - 16, p.y - 16], [p.x + 16, p.y + 16]], { layers })[0];
+  if (!f) { popup.remove(); return; }
+  const pr = f.properties || {};
+  let tipo = '', nome = pr.name || '';
+  if (f.layer.id.startsWith('park-')) {
+    tipo = 'Estacionamento na rua, lado ' + (pr.side === 'L' ? 'esquerdo' : 'direito');
+    nome = pr.val ? '(' + pr.val + ')' : '';
+  } else if (f.layer.id.startsWith('fuel-')) {
+    tipo = 'Bomba de combustível';
+  } else if (pr.class === 'parking') {
+    tipo = 'Estacionamento';
+  } else if (pr.class === 'charging_station' || pr.subclass === 'charging_station') {
+    tipo = 'Carregador elétrico';
+  } else if (pr.class === 'fuel') {
+    tipo = 'Bomba de combustível';
+  } else {
+    tipo = pr.class || 'Ponto';
+  }
+  const box = document.createElement('div');
+  box.style.cssText = 'font:14px system-ui,sans-serif;color:#14181c';
+  const t = document.createElement('b'); t.textContent = tipo; box.appendChild(t);
+  if (nome) { box.appendChild(document.createElement('br')); box.appendChild(document.createTextNode(nome)); }
+  popup.setLngLat(ev.lngLat).setDOMContent(box).addTo(map);
+});
+
+async function loadParkInner() {
   if (!ready || busy || map.getZoom() < 15) return;
   if (Date.now() - lastFail < 20000) return;
   const c = map.getCenter();
@@ -209,7 +250,8 @@ async function loadPark() {
     'way["amenity"="fuel"]' + b + ';' +
     ');out tags geom;';
   const d = await overpass(q);
-  if (!d) {
+  if (d && d.remark) lastErr = 'serviço: ' + String(d.remark).slice(0, 40);
+  if (!d || !Array.isArray(d.elements) || (d.remark && !d.elements.length)) {
     lastFail = Date.now();
     info.textContent = 'Estacionamento/bombas: falhou (' + lastErr + ')';
   } else {
@@ -217,12 +259,12 @@ async function loadPark() {
     d.elements.forEach(el => {
       if (el.tags && el.tags.amenity === 'fuel') {
         if (el.type === 'node') {
-          fuelFeats.push({ type: 'Feature', properties: {}, geometry: { type: 'Point', coordinates: [el.lon, el.lat] } });
+          fuelFeats.push({ type: 'Feature', properties: { name: el.tags.name || el.tags.brand || '' }, geometry: { type: 'Point', coordinates: [el.lon, el.lat] } });
         } else if (el.geometry && el.geometry.length > 3) {
           const ring = el.geometry.map(g => [g.lon, g.lat]);
           const f = ring[0], l = ring[ring.length - 1];
           if (f[0] === l[0] && f[1] === l[1]) {
-            fuelFeats.push({ type: 'Feature', properties: {}, geometry: { type: 'Polygon', coordinates: [ring] } });
+            fuelFeats.push({ type: 'Feature', properties: { name: el.tags.name || el.tags.brand || '' }, geometry: { type: 'Polygon', coordinates: [ring] } });
           }
         }
         return;
@@ -233,7 +275,7 @@ async function loadPark() {
       [['left', 'L'], ['right', 'R']].forEach(([name, code]) => {
         if (sideTag(el.tags, name)) {
           any = true;
-          feats.push({ type: 'Feature', properties: { side: code }, geometry: { type: 'LineString', coordinates: coords } });
+          feats.push({ type: 'Feature', properties: { side: code, val: sideTag(el.tags, name) }, geometry: { type: 'LineString', coordinates: coords } });
         }
       });
       if (any) ways++;
