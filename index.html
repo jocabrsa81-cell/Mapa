@@ -176,21 +176,33 @@ function sideTag(t, s) {
 }
 
 let lastErr = '';
+const MIRRORS = [
+  'https://overpass-api.de/api/interpreter',
+  'https://overpass.private.coffee/api/interpreter',
+  'https://overpass.kumi.systems/api/interpreter'
+];
 async function overpass(q) {
-  const urls = ['https://overpass-api.de/api/interpreter', 'https://overpass.kumi.systems/api/interpreter'];
-  for (const u of urls) {
-    const ctl = new AbortController();
-    const t = setTimeout(() => ctl.abort(), 15000);
+  const ctls = [], errs = [];
+  const tries = MIRRORS.map(async u => {
+    const ctl = new AbortController(); ctls.push(ctl);
+    const t = setTimeout(() => ctl.abort(), 20000);
     try {
-      const r = await fetch(u, { method: 'POST', body: 'data=' + encodeURIComponent(q), signal: ctl.signal });
-      if (r.ok) { const j = await r.json(); clearTimeout(t); return j; }
-      lastErr = 'HTTP ' + r.status;
+      const r = await fetch(u + '?data=' + encodeURIComponent(q), { signal: ctl.signal });
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      return await r.json();
     } catch (e) {
-      lastErr = e.name === 'AbortError' ? 'tempo esgotado' : 'bloqueado/rede';
-    }
-    clearTimeout(t);
+      errs.push(e.name === 'AbortError' ? 'tempo esgotado' : (e instanceof TypeError ? 'bloqueado/rede' : e.message));
+      throw e;
+    } finally { clearTimeout(t); }
+  });
+  try {
+    const j = await Promise.any(tries);
+    ctls.forEach(c => c.abort()); // o primeiro a responder ganha
+    return j;
+  } catch (e) {
+    lastErr = [...new Set(errs)].join(', ');
+    return null;
   }
-  return null;
 }
 
 // protege contra erros: nunca deixa a etiqueta presa em "a carregar…"
