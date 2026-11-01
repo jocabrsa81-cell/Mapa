@@ -115,7 +115,11 @@ map.on('load', () => {
     ['==', ['get', 'class'], 'charging_station'],
     ['==', ['get', 'subclass'], 'charging_station']];
   // bombas de combustível vêm do Overpass (edifício a vermelho); dos tiles só parking e carregadores
-  const poiFilter = ['any', ['==', ['get', 'class'], 'parking'], isEV];
+  // WC públicos
+  const isWC = ['any',
+    ['==', ['get', 'class'], 'toilets'],
+    ['==', ['get', 'subclass'], 'toilets']];
+  const poiFilter = ['any', ['==', ['get', 'class'], 'parking'], isEV, isWC];
   // ao afastar o zoom (12 a 15) mantém-se um ponto laranja simples para as bombas
   map.addLayer({
     id: 'poi-fuel-far', type: 'circle', source: 'openmaptiles', 'source-layer': 'poi', minzoom: 12,
@@ -130,7 +134,7 @@ map.on('load', () => {
     filter: poiFilter,
     paint: {
       'circle-radius': ['interpolate', ['linear'], ['zoom'], 13, 5, 18, 11],
-      'circle-color': ['case', isEV, '#1a9850', ['==', ['get', 'class'], 'fuel'], '#e8590c', '#1c6dd0'],
+      'circle-color': ['case', isEV, '#1a9850', isWC, '#f08c00', ['==', ['get', 'class'], 'fuel'], '#d62828', '#1c6dd0'],
       'circle-stroke-width': 2, 'circle-stroke-color': '#fff'
     }
   });
@@ -138,8 +142,8 @@ map.on('load', () => {
     id: 'poi-letra', type: 'symbol', source: 'openmaptiles', 'source-layer': 'poi', minzoom: 15,
     filter: poiFilter,
     layout: {
-      'text-field': ['case', isEV, 'E', ['==', ['get', 'class'], 'fuel'], 'G', 'P'],
-      'text-font': ['Noto Sans Bold'], 'text-size': 12, 'text-allow-overlap': true
+      'text-field': ['case', isEV, 'E', isWC, 'WC', ['==', ['get', 'class'], 'fuel'], 'G', 'P'],
+      'text-font': ['Noto Sans Bold'], 'text-size': ['case', isWC, 10, 12], 'text-allow-overlap': true
     },
     paint: { 'text-color': '#fff' }
   });
@@ -255,6 +259,8 @@ map.on('click', ev => {
     tipo = 'Estacionamento';
   } else if (pr.class === 'charging_station' || pr.subclass === 'charging_station') {
     tipo = 'Carregador elétrico';
+  } else if (pr.class === 'toilets' || pr.subclass === 'toilets') {
+    tipo = 'WC público';
   } else if (pr.class === 'fuel') {
     tipo = 'Bomba de combustível';
   } else {
