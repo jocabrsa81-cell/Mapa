@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#f3f1ea">
 <title>Mapa de rua</title>
+<link rel="manifest" href="manifest.json">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/maplibre-gl@4.7.1/dist/maplibre-gl.css">
 <style>
   html, body { margin: 0; height: 100%; font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
@@ -32,7 +33,19 @@
     background: #1a73e8; color: #fff; border: 0; border-radius: 14px; padding: 14px 18px;
     font-size: 16px; font-weight: 700; box-shadow: 0 2px 10px rgba(0,0,0,.35);
   }
-  #rec[hidden] { display: none; }
+  [hidden] { display: none !important; }
+  #sv {
+    position: fixed; right: 10px; top: calc(10px + env(safe-area-inset-top, 0px));
+    background: #14181c; color: #fff; border: 0; border-radius: 12px; padding: 10px 12px;
+    font-size: 14px; font-weight: 700;
+  }
+  #pn {
+    position: fixed; right: 10px; top: calc(60px + env(safe-area-inset-top, 0px));
+    background: #14181c; color: #fff; border-radius: 14px; padding: 12px; width: 220px;
+    font-size: 13px; box-shadow: 0 2px 10px rgba(0,0,0,.4);
+  }
+  #pn button { background: #1a73e8; color: #fff; border: 0; border-radius: 10px; padding: 10px; margin: 4px 4px 4px 0; font-size: 14px; font-weight: 700; }
+  #pt { margin-top: 6px; opacity: .9; }
   .me {
     width: 30px; height: 30px; background: #1a73e8;
     clip-path: polygon(50% 0, 100% 100%, 50% 74%, 0 100%);
@@ -46,6 +59,14 @@
 <div id="chip">A aguardar GPS…</div>
 <div id="info">Estacionamento na rua: a aguardar</div>
 <button id="rec" hidden>Centrar</button>
+<button id="sv">Guardar zona</button>
+<div id="pn" hidden>
+  Guarda o mapa à volta do centro do ecrã, para usar com sinal fraco. Usa wifi.
+  <div>
+    <button data-km="5">5 km</button><button data-km="10">10 km</button><button data-km="25">25 km</button>
+  </div>
+  <div id="pt"></div>
+</div>
 
 <script src="https://cdn.jsdelivr.net/npm/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
 <script>
@@ -353,6 +374,58 @@ async function keepAwake() {
   } catch (e) { lock = null; }
 }
 document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') keepAwake(); });
+
+// instalação e cache: a app e o mapa já vistos abrem mesmo com sinal fraco
+if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
+
+// guardar zona: descarrega os mosaicos à volta do centro do ecrã
+const sv = document.getElementById('sv'), pn = document.getElementById('pn'), pt = document.getElementById('pt');
+sv.addEventListener('click', () => { pn.hidden = !pn.hidden; });
+pn.querySelectorAll('button[data-km]').forEach(b => b.addEventListener('click', () => saveZone(+b.dataset.km)));
+
+function tileXY(lon, lat, z) {
+  const n = 2 ** z, r = lat * Math.PI / 180;
+  return [Math.floor((lon + 180) / 360 * n), Math.floor((1 - Math.log(Math.tan(r) + 1 / Math.cos(r)) / Math.PI) / 2 * n)];
+}
+
+let saving = false;
+async function saveZone(km) {
+  if (saving) return;
+  const src = map.getSource('openmaptiles');
+  if (!src || !src.tiles || !('caches' in window)) { pt.textContent = 'Não disponível neste browser.'; return; }
+  const tpl = src.tiles[0], maxz = Math.min(14, src.maxzoom || 14);
+  const c = map.getCenter();
+  const dLat = km / 111, dLon = km / (111 * Math.cos(c.lat * Math.PI / 180));
+  const urls = [];
+  for (let z = 5; z <= maxz; z++) {
+    const [x0, y1] = tileXY(c.lng - dLon, c.lat - dLat, z);
+    const [x1, y0] = tileXY(c.lng + dLon, c.lat + dLat, z);
+    for (let x = x0; x <= x1; x++) for (let y = y0; y <= y1; y++)
+      urls.push(tpl.replace('{z}', z).replace('{x}', x).replace('{y}', y));
+  }
+  if (urls.length > 4000) { pt.textContent = 'Zona demasiado grande (' + urls.length + ' mosaicos).'; return; }
+  saving = true;
+  const cache = await caches.open('mapa-dados');
+  let done = 0, fail = 0, i = 0;
+  pt.textContent = 'A guardar 0/' + urls.length;
+  async function worker() {
+    while (i < urls.length) {
+      const u = urls[i++];
+      try {
+        if (!(await cache.match(u))) {
+          const r = await fetch(u);
+          if (r.ok) await cache.put(u, r); else fail++;
+        }
+      } catch (e) { fail++; }
+      done++;
+      if (done % 10 === 0 || done === urls.length) pt.textContent = 'A guardar ' + done + '/' + urls.length;
+    }
+  }
+  await Promise.all(Array.from({ length: 6 }, worker));
+  saving = false;
+  pt.textContent = fail ? 'Guardado, mas ' + fail + ' mosaicos falharam. Repete com boa rede.'
+                        : 'Zona guardada (' + urls.length + ' mosaicos).';
+}
 </script>
 </body>
 </html>
