@@ -22,6 +22,11 @@
     border-radius: 999px; white-space: nowrap; max-width: 92vw; overflow: hidden; text-overflow: ellipsis;
   }
   #chip.on { background: #1a7f37; }
+  #info {
+    position: fixed; top: calc(56px + env(safe-area-inset-top, 0px)); left: 50%; transform: translateX(-50%);
+    background: rgba(20,24,28,.82); color: #fff; font-size: 12px; padding: 4px 10px;
+    border-radius: 999px; white-space: nowrap;
+  }
   #rec {
     position: fixed; right: 12px; bottom: calc(14px + env(safe-area-inset-bottom, 0px));
     background: #1a73e8; color: #fff; border: 0; border-radius: 14px; padding: 14px 18px;
@@ -39,6 +44,7 @@
 <div id="map"></div>
 <div id="hud"><div id="spd">0</div><small>km/h</small></div>
 <div id="chip">A aguardar GPS…</div>
+<div id="info">Estacionamento na rua: a aguardar</div>
 <button id="rec" hidden>Centrar</button>
 
 <script src="https://cdn.jsdelivr.net/npm/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
@@ -107,9 +113,78 @@ map.on('load', () => {
     paint: { 'text-color': '#fff' }
   });
 
+  // estacionamento na rua: linhas azuis deslocadas para o lado esquerdo/direito da via
+  map.addSource('park', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } });
+  [['L', -1], ['R', 1]].forEach(([s, k]) => map.addLayer({
+    id: 'park-' + s, type: 'line', source: 'park', minzoom: 15,
+    filter: ['==', ['get', 'side'], s],
+    paint: {
+      'line-color': '#1c6dd0', 'line-opacity': 0.85,
+      'line-width': ['interpolate', ['linear'], ['zoom'], 15, 3, 19, 8],
+      'line-offset': ['interpolate', ['linear'], ['zoom'], 15, 3 * k, 19, 14 * k]
+    }
+  }, 'poi-pontos'));
+
   ready = true;
   if (last) apply(last);
+  loadPark();
 });
+
+const info = document.getElementById('info');
+const NO = ['no', 'no_parking', 'no_stopping', 'separate', 'none'];
+let lastFetch = null, busy = false, lastFail = 0;
+
+function sideTag(t, s) {
+  const v = t['parking:lane:' + s] ?? t['parking:' + s] ?? t['parking:lane:both'] ?? t['parking:both'];
+  return v && !NO.includes(v) ? v : null;
+}
+
+async function overpass(q) {
+  const urls = ['https://overpass-api.de/api/interpreter', 'https://overpass.kumi.systems/api/interpreter'];
+  for (const u of urls) {
+    try {
+      const r = await fetch(u, { method: 'POST', body: 'data=' + encodeURIComponent(q) });
+      if (r.ok) return await r.json();
+    } catch (e) {}
+  }
+  return null;
+}
+
+async function loadPark() {
+  if (!ready || busy || map.getZoom() < 15) return;
+  if (Date.now() - lastFail < 20000) return;
+  const c = map.getCenter();
+  if (lastFetch && lastFetch.distanceTo(c) < 300) return;
+  busy = true;
+  info.textContent = 'Estacionamento na rua: a carregar…';
+  const s = c.lat - 0.005, n = c.lat + 0.005, w = c.lng - 0.007, e = c.lng + 0.007;
+  const q = '[out:json][timeout:25];way["highway"][~"^parking(:lane)?:(both|left|right)$"~"."](' +
+    s + ',' + w + ',' + n + ',' + e + ');out tags geom;';
+  const d = await overpass(q);
+  if (!d) {
+    lastFail = Date.now();
+    info.textContent = 'Estacionamento na rua: sem ligação ao serviço';
+  } else {
+    const feats = []; let ways = 0;
+    d.elements.forEach(el => {
+      if (!el.geometry || !el.tags) return;
+      const coords = el.geometry.map(g => [g.lon, g.lat]);
+      let any = false;
+      [['left', 'L'], ['right', 'R']].forEach(([name, code]) => {
+        if (sideTag(el.tags, name)) {
+          any = true;
+          feats.push({ type: 'Feature', properties: { side: code }, geometry: { type: 'LineString', coordinates: coords } });
+        }
+      });
+      if (any) ways++;
+    });
+    map.getSource('park').setData({ type: 'FeatureCollection', features: feats });
+    lastFetch = c;
+    info.textContent = 'Estacionamento na rua: ' + ways + ' ruas com dados nesta zona';
+  }
+  busy = false;
+}
+map.on('moveend', loadPark);
 
 function apply(p) {
   const c = p.coords;
