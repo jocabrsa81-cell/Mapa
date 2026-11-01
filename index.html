@@ -186,6 +186,9 @@ map.on('load', () => {
     paint: { 'text-color': '#fff' }
   });
 
+  // números de porta por cima das áreas das bombas (mas abaixo dos pontos P, E, WC)
+  map.moveLayer('nums', 'poi-pontos');
+
   ready = true;
   if (last) apply(last);
   loadPark();
@@ -316,7 +319,9 @@ async function loadParkInner() {
   if (d && d.remark) lastErr = 'serviço: ' + String(d.remark).slice(0, 40);
   if (!d || !Array.isArray(d.elements) || (d.remark && !d.elements.length)) {
     lastFail = Date.now();
-    info.textContent = 'Estacionamento/bombas: falhou (' + lastErr + ')';
+    info.textContent = navigator.onLine ? 'Estacionamento/bombas: falhou (' + lastErr + ')'
+                                        : 'Sem dados guardados nesta zona';
+    map.setLayerZoomRange('poi-fuel-far', 12, 24); // bombas do mapa base voltam a aparecer de perto
   } else {
     const feats = [], fuelFeats = []; let ways = 0;
     d.elements.forEach(el => {
