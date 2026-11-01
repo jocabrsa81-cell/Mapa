@@ -89,11 +89,18 @@ map.on('load', () => {
     paint: { 'text-color': '#7a1f00', 'text-halo-color': '#fff', 'text-halo-width': 2 }
   });
 
-  const poiFilter = ['in', ['get', 'class'], ['literal', ['fuel', 'parking', 'charging_station']]];
   // carregador elétrico = classe ou subclasse "charging_station"
   const isEV = ['any',
     ['==', ['get', 'class'], 'charging_station'],
     ['==', ['get', 'subclass'], 'charging_station']];
+  // bombas de combustível vêm do Overpass (edifício a vermelho); dos tiles só parking e carregadores
+  const poiFilter = ['any', ['==', ['get', 'class'], 'parking'], isEV];
+  // ao afastar o zoom (12 a 15) mantém-se um ponto laranja simples para as bombas
+  map.addLayer({
+    id: 'poi-fuel-far', type: 'circle', source: 'openmaptiles', 'source-layer': 'poi', minzoom: 12, maxzoom: 15,
+    filter: ['all', ['==', ['get', 'class'], 'fuel'], ['!', isEV]],
+    paint: { 'circle-radius': 4, 'circle-color': '#d62828', 'circle-stroke-width': 1.5, 'circle-stroke-color': '#fff' }
+  });
   map.addLayer({
     id: 'poi-pontos', type: 'circle', source: 'openmaptiles', 'source-layer': 'poi', minzoom: 13,
     filter: poiFilter,
@@ -124,6 +131,32 @@ map.on('load', () => {
       'line-offset': ['interpolate', ['linear'], ['zoom'], 15, 3 * k, 19, 14 * k]
     }
   }, 'poi-pontos'));
+
+  // bombas de combustível: área inteira a vermelho com G branco; ponto vermelho se só houver um ponto
+  map.addSource('fuel', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } });
+  map.addLayer({
+    id: 'fuel-area', type: 'fill', source: 'fuel', minzoom: 15,
+    filter: ['==', ['geometry-type'], 'Polygon'],
+    paint: { 'fill-color': '#d62828', 'fill-opacity': 0.88 }
+  }, 'poi-pontos');
+  map.addLayer({
+    id: 'fuel-borda', type: 'line', source: 'fuel', minzoom: 15,
+    filter: ['==', ['geometry-type'], 'Polygon'],
+    paint: { 'line-color': '#8d0801', 'line-width': 2 }
+  }, 'poi-pontos');
+  map.addLayer({
+    id: 'fuel-ponto', type: 'circle', source: 'fuel', minzoom: 15,
+    filter: ['==', ['geometry-type'], 'Point'],
+    paint: {
+      'circle-radius': ['interpolate', ['linear'], ['zoom'], 15, 6, 18, 12],
+      'circle-color': '#d62828', 'circle-stroke-width': 2, 'circle-stroke-color': '#fff'
+    }
+  });
+  map.addLayer({
+    id: 'fuel-g', type: 'symbol', source: 'fuel', minzoom: 15,
+    layout: { 'text-field': 'G', 'text-font': ['Noto Sans Bold'], 'text-size': ['interpolate', ['linear'], ['zoom'], 15, 13, 18, 20], 'text-allow-overlap': true },
+    paint: { 'text-color': '#fff' }
+  });
 
   ready = true;
   if (last) apply(last);
@@ -158,15 +191,31 @@ async function loadPark() {
   busy = true;
   info.textContent = 'Estacionamento na rua: a carregar…';
   const s = c.lat - 0.005, n = c.lat + 0.005, w = c.lng - 0.007, e = c.lng + 0.007;
-  const q = '[out:json][timeout:25];way["highway"][~"^parking(:lane)?:(both|left|right)$"~"."](' +
-    s + ',' + w + ',' + n + ',' + e + ');out tags geom;';
+  const b = '(' + s + ',' + w + ',' + n + ',' + e + ')';
+  const q = '[out:json][timeout:25];(' +
+    'way["highway"][~"^parking(:lane)?:(both|left|right)$"~"."]' + b + ';' +
+    'node["amenity"="fuel"]' + b + ';' +
+    'way["amenity"="fuel"]' + b + ';' +
+    ');out tags geom;';
   const d = await overpass(q);
   if (!d) {
     lastFail = Date.now();
     info.textContent = 'Estacionamento na rua: sem ligação ao serviço';
   } else {
-    const feats = []; let ways = 0;
+    const feats = [], fuelFeats = []; let ways = 0;
     d.elements.forEach(el => {
+      if (el.tags && el.tags.amenity === 'fuel') {
+        if (el.type === 'node') {
+          fuelFeats.push({ type: 'Feature', properties: {}, geometry: { type: 'Point', coordinates: [el.lon, el.lat] } });
+        } else if (el.geometry && el.geometry.length > 3) {
+          const ring = el.geometry.map(g => [g.lon, g.lat]);
+          const f = ring[0], l = ring[ring.length - 1];
+          if (f[0] === l[0] && f[1] === l[1]) {
+            fuelFeats.push({ type: 'Feature', properties: {}, geometry: { type: 'Polygon', coordinates: [ring] } });
+          }
+        }
+        return;
+      }
       if (!el.geometry || !el.tags) return;
       const coords = el.geometry.map(g => [g.lon, g.lat]);
       let any = false;
@@ -179,6 +228,7 @@ async function loadPark() {
       if (any) ways++;
     });
     map.getSource('park').setData({ type: 'FeatureCollection', features: feats });
+    map.getSource('fuel').setData({ type: 'FeatureCollection', features: fuelFeats });
     lastFetch = c;
     info.textContent = 'Estacionamento na rua: ' + ways + ' ruas com dados nesta zona';
   }
