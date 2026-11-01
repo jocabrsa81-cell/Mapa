@@ -267,6 +267,27 @@ map.on('click', ev => {
   popup.setLngLat(ev.lngLat).setDOMContent(box).addTo(map);
 });
 
+// dados.json (opcional): ficheiro exportado do Overpass; se cobrir a zona, não precisa de rede
+let localData;
+async function getLocal() {
+  if (localData !== undefined) return localData;
+  try {
+    const r = await fetch('dados.json');
+    if (!r.ok) throw new Error('sem ficheiro');
+    const j = await r.json();
+    if (!Array.isArray(j.elements)) throw new Error('formato');
+    let s = 90, w = 180, n = -90, e = -180;
+    const eat = (la, lo) => { s = Math.min(s, la); n = Math.max(n, la); w = Math.min(w, lo); e = Math.max(e, lo); };
+    j.elements.forEach(el => {
+      if (el.lat != null) eat(el.lat, el.lon);
+      (el.geometry || []).forEach(g => eat(g.lat, g.lon));
+    });
+    j.ext = [s, w, n, e];
+    localData = j;
+  } catch (err) { localData = null; }
+  return localData;
+}
+
 async function loadParkInner() {
   if (!ready || busy || map.getZoom() < 15) return;
   if (Date.now() - lastFail < 20000) return;
@@ -282,7 +303,9 @@ async function loadParkInner() {
     'node["amenity"="fuel"]' + b + ';' +
     'way["amenity"="fuel"]' + b + ';' +
     ');out tags geom;';
-  const d = await overpass(q);
+  const L = await getLocal();
+  const inside = !!L && c.lat >= L.ext[0] && c.lat <= L.ext[2] && c.lng >= L.ext[1] && c.lng <= L.ext[3];
+  const d = inside ? L : await overpass(q);
   if (d && d.remark) lastErr = 'serviço: ' + String(d.remark).slice(0, 40);
   if (!d || !Array.isArray(d.elements) || (d.remark && !d.elements.length)) {
     lastFail = Date.now();
@@ -317,7 +340,7 @@ async function loadParkInner() {
     map.getSource('fuel').setData({ type: 'FeatureCollection', features: fuelFeats });
     map.setLayerZoomRange('poi-fuel-far', 12, 15); // dados bons chegaram: o ponto simples só com zoom afastado
     lastFetch = c;
-    info.textContent = 'Estacionamento na rua: ' + ways + ' ruas com dados nesta zona';
+    info.textContent = 'Estacionamento na rua: ' + ways + ' ruas com dados nesta zona' + (inside ? ' (guardado)' : '');
   }
   busy = false;
 }
