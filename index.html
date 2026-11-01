@@ -26,7 +26,7 @@
   #info {
     position: fixed; top: calc(56px + env(safe-area-inset-top, 0px)); left: 50%; transform: translateX(-50%);
     background: rgba(20,24,28,.82); color: #fff; font-size: 12px; padding: 4px 10px;
-    border-radius: 999px; white-space: nowrap;
+    border-radius: 14px; max-width: 92vw; text-align: center;
   }
   #rec {
     position: fixed; right: 12px; bottom: calc(14px + env(safe-area-inset-bottom, 0px));
@@ -35,12 +35,12 @@
   }
   [hidden] { display: none !important; }
   #sv {
-    position: fixed; right: 10px; top: calc(10px + env(safe-area-inset-top, 0px));
+    position: fixed; right: 10px; top: calc(100px + env(safe-area-inset-top, 0px));
     background: #14181c; color: #fff; border: 0; border-radius: 12px; padding: 10px 12px;
     font-size: 14px; font-weight: 700;
   }
   #pn {
-    position: fixed; right: 10px; top: calc(60px + env(safe-area-inset-top, 0px));
+    position: fixed; right: 10px; top: calc(150px + env(safe-area-inset-top, 0px));
     background: #14181c; color: #fff; border-radius: 14px; padding: 12px; width: 220px;
     font-size: 13px; box-shadow: 0 2px 10px rgba(0,0,0,.4);
   }
@@ -341,7 +341,7 @@ async function loadParkInner() {
     map.getSource('fuel').setData({ type: 'FeatureCollection', features: fuelFeats });
     map.setLayerZoomRange('poi-fuel-far', 12, 15); // dados bons chegaram: o ponto simples só com zoom afastado
     lastFetch = c;
-    info.textContent = 'Estacionamento na rua: ' + ways + ' ruas com dados nesta zona' + (inside ? ' (guardado)' : '');
+    info.textContent = ways + ' ruas com estacionamento' + (inside ? ' (guardado)' : '');
   }
   busy = false;
 }
