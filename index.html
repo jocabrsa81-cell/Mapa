@@ -1,0 +1,163 @@
+<!doctype html>
+<html lang="pt">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#f3f1ea">
+<title>Mapa de rua</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/maplibre-gl@4.7.1/dist/maplibre-gl.css">
+<style>
+  html, body { margin: 0; height: 100%; font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  #map { position: fixed; inset: 0; }
+  #hud {
+    position: fixed; left: 12px; bottom: calc(14px + env(safe-area-inset-bottom, 0px));
+    background: #14181c; color: #fff; border-radius: 14px; padding: 8px 14px 6px;
+    text-align: center; min-width: 74px; box-shadow: 0 2px 10px rgba(0,0,0,.35);
+  }
+  #spd { font-size: 40px; font-weight: 800; line-height: 1; font-variant-numeric: tabular-nums; }
+  #hud small { font-size: 12px; opacity: .75; }
+  #chip {
+    position: fixed; top: calc(10px + env(safe-area-inset-top, 0px)); left: 50%; transform: translateX(-50%);
+    background: #14181c; color: #fff; font-size: 14px; font-weight: 600; padding: 8px 14px;
+    border-radius: 999px; white-space: nowrap; max-width: 92vw; overflow: hidden; text-overflow: ellipsis;
+  }
+  #chip.on { background: #1a7f37; }
+  #rec {
+    position: fixed; right: 12px; bottom: calc(14px + env(safe-area-inset-bottom, 0px));
+    background: #1a73e8; color: #fff; border: 0; border-radius: 14px; padding: 14px 18px;
+    font-size: 16px; font-weight: 700; box-shadow: 0 2px 10px rgba(0,0,0,.35);
+  }
+  #rec[hidden] { display: none; }
+  .me {
+    width: 30px; height: 30px; background: #1a73e8;
+    clip-path: polygon(50% 0, 100% 100%, 50% 74%, 0 100%);
+    filter: drop-shadow(0 1px 2px rgba(0,0,0,.5));
+  }
+</style>
+</head>
+<body>
+<div id="map"></div>
+<div id="hud"><div id="spd">0</div><small>km/h</small></div>
+<div id="chip">A aguardar GPS…</div>
+<button id="rec" hidden>Centrar</button>
+
+<script src="https://cdn.jsdelivr.net/npm/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+<script>
+const LIMIT = 50;  // km/h: abaixo disto os números aparecem
+const BACK = 55;   // km/h: só desaparecem acima disto (evita piscar)
+
+const spd = document.getElementById('spd');
+const chip = document.getElementById('chip');
+const rec = document.getElementById('rec');
+
+let follow = true, numsOn = false, bearing = 0, last = null, ready = false;
+
+const map = new maplibregl.Map({
+  container: 'map',
+  style: 'https://tiles.openfreemap.org/styles/liberty',
+  center: [6.08, 49.48], zoom: 15,
+  attributionControl: { compact: true }
+});
+map.touchZoomRotate.disableRotation();
+map.dragRotate.disable();
+
+const dot = document.createElement('div');
+dot.className = 'me';
+const me = new maplibregl.Marker({ element: dot, rotationAlignment: 'viewport', pitchAlignment: 'viewport' });
+
+map.on('load', () => {
+  // esconde os números de porta do estilo base; uso uma camada própria
+  map.getStyle().layers
+    .filter(l => l['source-layer'] === 'housenumber')
+    .forEach(l => map.setLayoutProperty(l.id, 'visibility', 'none'));
+
+  map.addLayer({
+    id: 'nums', type: 'symbol', source: 'openmaptiles', 'source-layer': 'housenumber', minzoom: 16,
+    layout: {
+      'text-field': ['get', 'housenumber'],
+      'text-font': ['Noto Sans Bold'],
+      'text-size': ['interpolate', ['linear'], ['zoom'], 16, 12, 19, 18],
+      'text-allow-overlap': false,
+      visibility: 'none'
+    },
+    paint: { 'text-color': '#7a1f00', 'text-halo-color': '#fff', 'text-halo-width': 2 }
+  });
+
+  const poiFilter = ['in', ['get', 'class'], ['literal', ['fuel', 'parking']]];
+  map.addLayer({
+    id: 'poi-pontos', type: 'circle', source: 'openmaptiles', 'source-layer': 'poi', minzoom: 13,
+    filter: poiFilter,
+    paint: {
+      'circle-radius': ['interpolate', ['linear'], ['zoom'], 13, 5, 18, 11],
+      'circle-color': ['match', ['get', 'class'], 'fuel', '#e8590c', '#1c6dd0'],
+      'circle-stroke-width': 2, 'circle-stroke-color': '#fff'
+    }
+  });
+  map.addLayer({
+    id: 'poi-letra', type: 'symbol', source: 'openmaptiles', 'source-layer': 'poi', minzoom: 15,
+    filter: poiFilter,
+    layout: {
+      'text-field': ['match', ['get', 'class'], 'fuel', 'G', 'P'],
+      'text-font': ['Noto Sans Bold'], 'text-size': 12, 'text-allow-overlap': true
+    },
+    paint: { 'text-color': '#fff' }
+  });
+
+  ready = true;
+  if (last) apply(last);
+});
+
+function apply(p) {
+  const c = p.coords;
+  const v = (c.speed != null && !isNaN(c.speed)) ? c.speed * 3.6 : 0;
+  spd.textContent = Math.round(v);
+
+  numsOn = numsOn ? v < BACK : v < LIMIT;
+  chip.className = numsOn ? 'on' : '';
+  chip.textContent = numsOn ? 'Números de porta: visíveis' : 'Números ocultos (acima de ' + LIMIT + ' km/h)';
+
+  if (c.heading != null && !isNaN(c.heading) && v > 5) bearing = c.heading;
+  const pos = [c.longitude, c.latitude];
+  me.setLngLat(pos).addTo(map);
+
+  if (ready) map.setLayoutProperty('nums', 'visibility', numsOn ? 'visible' : 'none');
+
+  if (follow && ready) {
+    const h = window.innerHeight;
+    map.easeTo({
+      center: pos, bearing: bearing, zoom: numsOn ? 17.3 : 15.5,
+      padding: { top: Math.round(h * 0.4), bottom: 0, left: 0, right: 0 },
+      duration: 900, essential: true
+    });
+  }
+}
+
+function onPos(p) { last = p; apply(p); keepAwake(); }
+
+function onErr(e) {
+  chip.className = '';
+  chip.textContent = e.code === 1 ? 'Ativa a localização para este site' : 'Sem sinal de GPS';
+}
+
+if ('geolocation' in navigator) {
+  navigator.geolocation.watchPosition(onPos, onErr, { enableHighAccuracy: true, maximumAge: 1000, timeout: 20000 });
+} else {
+  chip.textContent = 'Este telemóvel não suporta GPS no browser';
+}
+
+map.on('dragstart', () => { follow = false; rec.hidden = false; });
+rec.addEventListener('click', () => { follow = true; rec.hidden = true; if (last) apply(last); });
+
+let lock = null;
+async function keepAwake() {
+  try {
+    if ('wakeLock' in navigator && !lock) {
+      lock = await navigator.wakeLock.request('screen');
+      lock.addEventListener('release', () => { lock = null; });
+    }
+  } catch (e) { lock = null; }
+}
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') keepAwake(); });
+</script>
+</body>
+</html>
