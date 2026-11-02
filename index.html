@@ -57,7 +57,7 @@
 <div id="map"></div>
 <div id="hud"><div id="spd">0</div><small>km/h</small></div>
 <div id="chip">A aguardar GPS…</div>
-<div id="info">Estacionamento na rua: a aguardar</div>
+<div id="info" hidden></div>
 <button id="rec" hidden>Centrar</button>
 <button id="sv">Guardar zona</button>
 <div id="pn" hidden>
@@ -148,18 +148,6 @@ map.on('load', () => {
     paint: { 'text-color': '#fff' }
   });
 
-  // estacionamento na rua: linhas azuis deslocadas para o lado esquerdo/direito da via
-  map.addSource('park', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } });
-  [['L', -1], ['R', 1]].forEach(([s, k]) => map.addLayer({
-    id: 'park-' + s, type: 'line', source: 'park', minzoom: 15,
-    filter: ['==', ['get', 'side'], s],
-    paint: {
-      'line-color': '#1c6dd0', 'line-opacity': 0.85,
-      'line-width': ['interpolate', ['linear'], ['zoom'], 15, 3, 19, 8],
-      'line-offset': ['interpolate', ['linear'], ['zoom'], 15, 3 * k, 19, 14 * k]
-    }
-  }, 'poi-pontos'));
-
   // bombas de combustível: área inteira a vermelho com G branco; ponto vermelho se só houver um ponto
   map.addSource('fuel', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } });
   map.addLayer({
@@ -195,13 +183,6 @@ map.on('load', () => {
 });
 
 const info = document.getElementById('info');
-const NO = ['no', 'no_parking', 'no_stopping', 'separate', 'none'];
-let lastFetch = null, busy = false, lastFail = 0;
-
-function sideTag(t, s) {
-  const v = t['parking:lane:' + s] ?? t['parking:' + s] ?? t['parking:lane:both'] ?? t['parking:both'];
-  return v && !NO.includes(v) ? v : null;
-}
 
 let lastErr = '';
 const MIRRORS = [
@@ -239,6 +220,7 @@ async function loadPark() {
   try { await loadParkInner(); }
   catch (err) {
     lastFail = Date.now();
+    info.hidden = false;
     info.textContent = 'Erro na app: ' + (err && err.message ? err.message : err);
   } finally { if (!wasBusy) busy = false; }
 }
@@ -247,16 +229,13 @@ async function loadPark() {
 const popup = new maplibregl.Popup({ closeButton: false, maxWidth: '240px' });
 map.on('click', ev => {
   if (!ready) return;
-  const layers = ['poi-pontos', 'poi-fuel-far', 'fuel-ponto', 'fuel-area', 'park-L', 'park-R'].filter(id => map.getLayer(id));
+  const layers = ['poi-pontos', 'poi-fuel-far', 'fuel-ponto', 'fuel-area'].filter(id => map.getLayer(id));
   const p = ev.point;
   const f = map.queryRenderedFeatures([[p.x - 16, p.y - 16], [p.x + 16, p.y + 16]], { layers })[0];
   if (!f) { popup.remove(); return; }
   const pr = f.properties || {};
   let tipo = '', nome = pr.name || '';
-  if (f.layer.id.startsWith('park-')) {
-    tipo = 'Estacionamento na rua, lado ' + (pr.side === 'L' ? 'esquerdo' : 'direito');
-    nome = pr.val ? '(' + pr.val + ')' : '';
-  } else if (f.layer.id.startsWith('fuel-')) {
+  if (f.layer.id.startsWith('fuel-')) {
     tipo = 'Bomba de combustível';
   } else if (pr.class === 'parking') {
     tipo = 'Estacionamento';
@@ -304,12 +283,10 @@ async function loadParkInner() {
   const c = map.getCenter();
   if (lastFetch && lastFetch.distanceTo(c) < 300) return;
   busy = true;
-  info.textContent = 'Estacionamento na rua: a carregar…';
+  info.hidden = false; info.textContent = 'Bombas: a carregar…';
   const s = c.lat - 0.005, n = c.lat + 0.005, w = c.lng - 0.007, e = c.lng + 0.007;
   const b = '(' + s + ',' + w + ',' + n + ',' + e + ')';
   const q = '[out:json][timeout:25];(' +
-    ['parking:lane:both', 'parking:lane:left', 'parking:lane:right', 'parking:both', 'parking:left', 'parking:right']
-      .map(k => 'way["' + k + '"]' + b + ';').join('') +
     'node["amenity"="fuel"]' + b + ';' +
     'way["amenity"="fuel"]' + b + ';' +
     ');out tags geom;';
@@ -319,11 +296,12 @@ async function loadParkInner() {
   if (d && d.remark) lastErr = 'serviço: ' + String(d.remark).slice(0, 40);
   if (!d || !Array.isArray(d.elements) || (d.remark && !d.elements.length)) {
     lastFail = Date.now();
-    info.textContent = navigator.onLine ? 'Estacionamento/bombas: falhou (' + lastErr + ')'
+    info.hidden = false;
+    info.textContent = navigator.onLine ? 'Bombas: falhou (' + lastErr + ')'
                                         : 'Sem dados guardados nesta zona';
     map.setLayerZoomRange('poi-fuel-far', 12, 24); // bombas do mapa base voltam a aparecer de perto
   } else {
-    const feats = [], fuelFeats = []; let ways = 0;
+    const fuelFeats = [];
     d.elements.forEach(el => {
       if (el.tags && el.tags.amenity === 'fuel') {
         if (el.type === 'node') {
@@ -337,22 +315,11 @@ async function loadParkInner() {
         }
         return;
       }
-      if (!el.geometry || !el.tags) return;
-      const coords = el.geometry.map(g => [g.lon, g.lat]);
-      let any = false;
-      [['left', 'L'], ['right', 'R']].forEach(([name, code]) => {
-        if (sideTag(el.tags, name)) {
-          any = true;
-          feats.push({ type: 'Feature', properties: { side: code, val: sideTag(el.tags, name) }, geometry: { type: 'LineString', coordinates: coords } });
-        }
-      });
-      if (any) ways++;
     });
-    map.getSource('park').setData({ type: 'FeatureCollection', features: feats });
     map.getSource('fuel').setData({ type: 'FeatureCollection', features: fuelFeats });
     map.setLayerZoomRange('poi-fuel-far', 12, 15); // dados bons chegaram: o ponto simples só com zoom afastado
     lastFetch = c;
-    info.textContent = ways + ' ruas com estacionamento' + (inside ? ' (guardado)' : '');
+    info.hidden = true; // tudo bem: esconde a linha de informação
   }
   busy = false;
 }
