@@ -39,8 +39,14 @@
     background: #14181c; color: #fff; border: 0; border-radius: 12px; padding: 10px 12px;
     font-size: 14px; font-weight: 700;
   }
-  #pn {
+  #tr {
     position: fixed; right: 10px; top: calc(150px + env(safe-area-inset-top, 0px));
+    background: #14181c; color: #fff; border: 0; border-radius: 12px; padding: 10px 12px;
+    font-size: 14px; font-weight: 700;
+  }
+  #tr.on { background: #1a7f37; }
+  #pn {
+    position: fixed; right: 10px; top: calc(200px + env(safe-area-inset-top, 0px));
     background: #14181c; color: #fff; border-radius: 14px; padding: 12px; width: 220px;
     font-size: 13px; box-shadow: 0 2px 10px rgba(0,0,0,.4);
   }
@@ -66,6 +72,7 @@
 <div id="wx" hidden></div>
 <button id="rec" hidden>Centrar</button>
 <button id="sv">Guardar zona</button>
+<button id="tr">Trânsito</button>
 <div id="pn" hidden>
   Guarda o mapa à volta do centro do ecrã, para usar com sinal fraco. Usa wifi.
   <div>
@@ -84,6 +91,14 @@ const chip = document.getElementById('chip');
 const rec = document.getElementById('rec');
 
 let follow = true, numsOn = false, bearing = 0, last = null, ready = false;
+
+// trânsito em tempo real (TomTom): precisa de rede e não é guardado no telemóvel
+const KEY_TT = 'vKk6oa9UQ0WvDI9KYPST3Qq0VAdXguvI';
+const trBtn = document.getElementById('tr');
+let trOn = false, trErr = 0;
+try { trOn = localStorage.getItem('tr') === '1'; } catch (e) {}
+const trUrl = () => 'https://api.tomtom.com/traffic/map/4/tile/flow/relative/{z}/{x}/{y}.png?key=' + KEY_TT +
+  '&tileSize=256&t=' + Math.floor(Date.now() / 120000);
 
 const map = new maplibregl.Map({
   container: 'map',
@@ -180,12 +195,21 @@ map.on('load', () => {
     paint: { 'text-color': '#fff' }
   });
 
+  // trânsito: estradas coloridas por baixo dos nomes das ruas
+  map.addSource('trafego', { type: 'raster', tiles: [trUrl()], tileSize: 256, maxzoom: 18, attribution: 'Trânsito © TomTom' });
+  const etiqueta = map.getStyle().layers.find(l => l.type === 'symbol');
+  map.addLayer({
+    id: 'trafego', type: 'raster', source: 'trafego',
+    layout: { visibility: 'none' }, paint: { 'raster-opacity': 0.85 }
+  }, etiqueta ? etiqueta.id : undefined);
+
   // números de porta por cima das áreas das bombas (mas abaixo dos pontos P, E, WC)
   map.moveLayer('nums', 'poi-pontos');
 
   ready = true;
   if (last) apply(last);
   loadPark();
+  setTrafego(trOn);
 });
 
 const info = document.getElementById('info');
@@ -434,6 +458,27 @@ try {
   const sv = JSON.parse(localStorage.getItem('wx') || 'null');
   if (sv && Date.now() - sv.t < 3 * 3600 * 1000) showWx(sv.o, true);
 } catch (e) {}
+
+// botão do trânsito
+function setTrafego(on) {
+  trOn = on;
+  trBtn.classList.toggle('on', on);
+  try { localStorage.setItem('tr', on ? '1' : '0'); } catch (e) {}
+  if (ready) map.setLayoutProperty('trafego', 'visibility', on ? 'visible' : 'none');
+}
+trBtn.addEventListener('click', () => setTrafego(!trOn));
+// de 2 em 2 minutos pede mosaicos novos
+setInterval(() => {
+  if (trOn && ready && navigator.onLine) { try { map.getSource('trafego').setTiles([trUrl()]); } catch (e) {} }
+}, 120000);
+map.on('error', e => {
+  if (e && e.sourceId === 'trafego' && trOn && Date.now() - trErr > 30000) {
+    trErr = Date.now();
+    info.hidden = false;
+    info.textContent = navigator.onLine ? 'Trânsito: sem dados aqui' : 'Trânsito: sem rede';
+    setTimeout(() => { if (info.textContent.startsWith('Trânsito')) info.hidden = true; }, 6000);
+  }
+});
 
 // instalação e cache: a app e o mapa já vistos abrem mesmo com sinal fraco
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
