@@ -203,6 +203,26 @@ map.on('load', () => {
     layout: { visibility: 'none' }, paint: { 'raster-opacity': 0.85 }
   }, etiqueta ? etiqueta.id : undefined);
 
+  // parquímetros: bola amarela com o símbolo do euro (desenhada aqui, não depende de fontes)
+  const cv = document.createElement('canvas');
+  cv.width = cv.height = 64;
+  const cx = cv.getContext('2d');
+  cx.beginPath(); cx.arc(32, 32, 28, 0, Math.PI * 2);
+  cx.fillStyle = '#f5c400'; cx.fill();
+  cx.lineWidth = 4; cx.strokeStyle = '#ffffff'; cx.stroke();
+  cx.fillStyle = '#14181c'; cx.font = 'bold 36px sans-serif';
+  cx.textAlign = 'center'; cx.textBaseline = 'middle';
+  cx.fillText('€', 32, 34);
+  map.addImage('parq-img', cx.getImageData(0, 0, 64, 64), { pixelRatio: 2 });
+  map.addSource('parq', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } });
+  map.addLayer({
+    id: 'parq', type: 'symbol', source: 'parq', minzoom: 15,
+    layout: {
+      'icon-image': 'parq-img', 'icon-allow-overlap': true,
+      'icon-size': ['interpolate', ['linear'], ['zoom'], 15, 0.55, 18, 0.9]
+    }
+  });
+
   // números de porta por cima das áreas das bombas (mas abaixo dos pontos P, E, WC)
   map.moveLayer('nums', 'poi-pontos');
 
@@ -259,13 +279,15 @@ async function loadPark() {
 const popup = new maplibregl.Popup({ closeButton: false, maxWidth: '240px' });
 map.on('click', ev => {
   if (!ready) return;
-  const layers = ['poi-pontos', 'poi-fuel-far', 'fuel-ponto', 'fuel-area'].filter(id => map.getLayer(id));
+  const layers = ['parq', 'poi-pontos', 'poi-fuel-far', 'fuel-ponto', 'fuel-area'].filter(id => map.getLayer(id));
   const p = ev.point;
   const f = map.queryRenderedFeatures([[p.x - 16, p.y - 16], [p.x + 16, p.y + 16]], { layers })[0];
   if (!f) { popup.remove(); return; }
   const pr = f.properties || {};
   let tipo = '', nome = pr.name || '';
-  if (f.layer.id.startsWith('fuel-')) {
+  if (f.layer.id === 'parq') {
+    tipo = 'Parquímetro';
+  } else if (f.layer.id.startsWith('fuel-')) {
     tipo = 'Bomba de combustível';
   } else if (pr.class === 'parking') {
     tipo = 'Estacionamento';
@@ -318,6 +340,8 @@ async function loadParkInner() {
   const b = '(' + s + ',' + w + ',' + n + ',' + e + ')';
   const q = '[out:json][timeout:25];(' +
     'node["amenity"="fuel"]' + b + ';' +
+    'node["amenity"="parking_meter"]' + b + ';' +
+    'node["vending"="parking_tickets"]' + b + ';' +
     'way["amenity"="fuel"]' + b + ';' +
     ');out tags geom;';
   const L = await getLocal();
@@ -331,7 +355,7 @@ async function loadParkInner() {
                                         : 'Sem dados guardados nesta zona';
     map.setLayerZoomRange('poi-fuel-far', 12, 24); // bombas do mapa base voltam a aparecer de perto
   } else {
-    const fuelFeats = [];
+    const fuelFeats = [], meterFeats = [];
     d.elements.forEach(el => {
       if (el.tags && el.tags.amenity === 'fuel') {
         if (el.type === 'node') {
@@ -345,8 +369,12 @@ async function loadParkInner() {
         }
         return;
       }
+      if (el.type === 'node' && el.tags && (el.tags.amenity === 'parking_meter' || el.tags.vending === 'parking_tickets')) {
+        meterFeats.push({ type: 'Feature', properties: { name: el.tags.operator || '' }, geometry: { type: 'Point', coordinates: [el.lon, el.lat] } });
+      }
     });
     map.getSource('fuel').setData({ type: 'FeatureCollection', features: fuelFeats });
+    map.getSource('parq').setData({ type: 'FeatureCollection', features: meterFeats });
     map.setLayerZoomRange('poi-fuel-far', 12, 15); // dados bons chegaram: o ponto simples só com zoom afastado
     lastFetch = c;
     info.hidden = true; // tudo bem: esconde a linha de informação
