@@ -46,6 +46,11 @@
   }
   #pn button { background: #1a73e8; color: #fff; border: 0; border-radius: 10px; padding: 10px; margin: 4px 4px 4px 0; font-size: 14px; font-weight: 700; }
   #pt { margin-top: 6px; opacity: .9; }
+  #wx {
+    position: fixed; left: 10px; top: calc(100px + env(safe-area-inset-top, 0px));
+    background: #14181c; color: #fff; font-size: 14px; font-weight: 700;
+    padding: 9px 12px; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,.35);
+  }
   .me {
     width: 30px; height: 30px; background: #1a73e8;
     clip-path: polygon(50% 0, 100% 100%, 50% 74%, 0 100%);
@@ -58,6 +63,7 @@
 <div id="hud"><div id="spd">0</div><small>km/h</small></div>
 <div id="chip">A aguardar GPS…</div>
 <div id="info" hidden></div>
+<div id="wx" hidden></div>
 <button id="rec" hidden>Centrar</button>
 <button id="sv">Guardar zona</button>
 <div id="pn" hidden>
@@ -350,7 +356,7 @@ function apply(p) {
   }
 }
 
-function onPos(p) { last = p; apply(p); keepAwake(); }
+function onPos(p) { last = p; apply(p); keepAwake(); fetchWx(); }
 
 function onErr(e) {
   chip.className = '';
@@ -376,6 +382,58 @@ async function keepAwake() {
   } catch (e) { lock = null; }
 }
 document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') keepAwake(); });
+
+// tempo: aviso (chuva, gelo, nevoeiro) e mapa mais escuro com chuva ou nevoeiro
+const wx = document.getElementById('wx');
+let wxOk = 0, wxTry = 0, wxPos = null;
+
+function wxInfo(code, temp, vis, precip) {
+  if ([56, 57, 66, 67].includes(code)) return { t: '🧊 Chuva gelada' };
+  if ([71, 73, 75, 77, 85, 86].includes(code)) return { t: '❄️ Neve' };
+  if (temp != null && temp <= 2 && precip > 0) return { t: '🧊 Possível gelo' };
+  if ([45, 48].includes(code) || (vis != null && vis < 1000)) return { t: '🌫️ Nevoeiro', filter: 'brightness(0.82) contrast(1.1)' };
+  if ([51, 53, 55, 61, 63, 65, 80, 81, 82, 95, 96, 99].includes(code)) return { t: '🌧️ Chuva', filter: 'brightness(0.78) saturate(0.9)' };
+  return null;
+}
+
+function showWx(o, guardado) {
+  const cv = map.getCanvas();
+  cv.style.transition = 'filter 1s';
+  cv.style.filter = o && o.filter ? o.filter : '';
+  if (!o) { wx.hidden = true; return; }
+  wx.hidden = false;
+  wx.textContent = o.t + (o.temp != null ? ' ' + Math.round(o.temp) + '°' : '') + (guardado ? ' (guardado)' : '');
+}
+
+async function fetchWx() {
+  if (Date.now() - wxTry < 120000) return;
+  const lat = last ? last.coords.latitude : map.getCenter().lat;
+  const lon = last ? last.coords.longitude : map.getCenter().lng;
+  if (wxPos && Date.now() - wxOk < 900000 && Math.abs(lat - wxPos[0]) < 0.15 && Math.abs(lon - wxPos[1]) < 0.2) return;
+  wxTry = Date.now();
+  const ctl = new AbortController();
+  const t = setTimeout(() => ctl.abort(), 8000);
+  try {
+    const u = 'https://api.open-meteo.com/v1/forecast?latitude=' + lat.toFixed(3) + '&longitude=' + lon.toFixed(3) +
+      '&current=temperature_2m,precipitation,weather_code,visibility&timezone=auto';
+    const r = await fetch(u, { signal: ctl.signal });
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    const c = (await r.json()).current;
+    if (!c) throw new Error('sem dados');
+    const o = wxInfo(c.weather_code, c.temperature_2m, c.visibility, c.precipitation);
+    if (o) o.temp = c.temperature_2m;
+    wxOk = Date.now(); wxPos = [lat, lon];
+    showWx(o);
+    try { localStorage.setItem('wx', JSON.stringify({ t: wxOk, o })); } catch (e) {}
+  } catch (e) { /* sem rede: fica o último valor */ }
+  clearTimeout(t);
+}
+
+// ao abrir, usa o último valor se tiver menos de 3 horas
+try {
+  const sv = JSON.parse(localStorage.getItem('wx') || 'null');
+  if (sv && Date.now() - sv.t < 3 * 3600 * 1000) showWx(sv.o, true);
+} catch (e) {}
 
 // instalação e cache: a app e o mapa já vistos abrem mesmo com sinal fraco
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
