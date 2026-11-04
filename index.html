@@ -52,6 +52,16 @@
   }
   #pn button { background: #1a73e8; color: #fff; border: 0; border-radius: 10px; padding: 10px; margin: 4px 4px 4px 0; font-size: 14px; font-weight: 700; }
   #pt { margin-top: 6px; opacity: .9; }
+  .fdot { width: 18px; height: 18px; pointer-events: none; }
+  .fdot i {
+    display: block; width: 18px; height: 18px; border-radius: 50%; background: #d62828;
+    border: 3px solid #fff; box-sizing: border-box; box-shadow: 0 1px 4px rgba(0,0,0,.5);
+  }
+  .fdot b {
+    position: absolute; top: 21px; left: 50%; transform: translateX(-50%);
+    background: rgba(20,24,28,.85); color: #fff; font: 700 11px system-ui, sans-serif;
+    padding: 1px 5px; border-radius: 8px; white-space: nowrap;
+  }
   #wx {
     position: fixed; left: 10px; top: calc(100px + env(safe-area-inset-top, 0px));
     background: #14181c; color: #fff; font-size: 14px; font-weight: 700;
@@ -223,6 +233,26 @@ map.on('load', () => {
     }
   });
 
+  // incidentes (acidentes, obras, estradas cortadas): só com o botão Trânsito ligado
+  criaIconesInc();
+  map.addSource('inc', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } });
+  map.addLayer({
+    id: 'inc-lin', type: 'line', source: 'inc', minzoom: 9,
+    filter: ['==', ['geometry-type'], 'LineString'], layout: { visibility: 'none' },
+    paint: {
+      'line-color': ['match', ['get', 'cat'], 8, '#d62828', 1, '#d62828', 7, '#f08c00', 9, '#f08c00', '#e0a800'],
+      'line-width': ['interpolate', ['linear'], ['zoom'], 9, 2, 16, 6], 'line-opacity': 0.9
+    }
+  }, etiqueta ? etiqueta.id : undefined);
+  map.addLayer({
+    id: 'inc-icon', type: 'symbol', source: 'inc', minzoom: 9,
+    filter: ['==', ['geometry-type'], 'Point'],
+    layout: {
+      visibility: 'none', 'icon-image': ['get', 'img'], 'icon-allow-overlap': true,
+      'icon-size': ['interpolate', ['linear'], ['zoom'], 9, 0.6, 16, 1]
+    }
+  });
+
   // números de porta por cima das áreas das bombas (mas abaixo dos pontos P, E, WC)
   map.moveLayer('nums', 'poi-pontos');
 
@@ -279,13 +309,17 @@ async function loadPark() {
 const popup = new maplibregl.Popup({ closeButton: false, maxWidth: '240px' });
 map.on('click', ev => {
   if (!ready) return;
-  const layers = ['parq', 'poi-pontos', 'poi-fuel-far', 'fuel-ponto', 'fuel-area'].filter(id => map.getLayer(id));
+  const layers = ['inc-icon', 'parq', 'poi-pontos', 'poi-fuel-far', 'fuel-ponto', 'fuel-area'].filter(id => map.getLayer(id));
   const p = ev.point;
   const f = map.queryRenderedFeatures([[p.x - 16, p.y - 16], [p.x + 16, p.y + 16]], { layers })[0];
   if (!f) { popup.remove(); return; }
   const pr = f.properties || {};
   let tipo = '', nome = pr.name || '';
-  if (f.layer.id === 'parq') {
+  if (f.layer.id === 'inc-icon') {
+    tipo = INC_NOME[pr.cat] || 'Incidente';
+    nome = [pr.desc, (pr.from || pr.to) ? (pr.from + ' → ' + pr.to) : '',
+            pr.end ? 'até ' + String(pr.end).slice(0, 16).replace('T', ' ') : ''].filter(Boolean).join(' · ');
+  } else if (f.layer.id === 'parq') {
     tipo = 'Parquímetro';
   } else if (f.layer.id.startsWith('fuel-')) {
     tipo = 'Bomba de combustível';
@@ -374,6 +408,7 @@ async function loadParkInner() {
       }
     });
     map.getSource('fuel').setData({ type: 'FeatureCollection', features: fuelFeats });
+    setFuelPts(fuelFeats);
     map.getSource('parq').setData({ type: 'FeatureCollection', features: meterFeats });
     map.setLayerZoomRange('poi-fuel-far', 12, 15); // dados bons chegaram: o ponto simples só com zoom afastado
     lastFetch = c;
@@ -395,6 +430,7 @@ function apply(p) {
   if (c.heading != null && !isNaN(c.heading) && v > 5) bearing = c.heading;
   const pos = [c.longitude, c.latitude];
   me.setLngLat(pos).addTo(map);
+  pickNearest(pos); placeDot();
 
   if (ready) map.setLayoutProperty('nums', 'visibility', numsOn ? 'visible' : 'none');
 
@@ -408,7 +444,7 @@ function apply(p) {
   }
 }
 
-function onPos(p) { last = p; apply(p); keepAwake(); fetchWx(); }
+function onPos(p) { last = p; apply(p); keepAwake(); fetchWx(); fetchInc(); }
 
 function onErr(e) {
   chip.className = '';
@@ -487,17 +523,138 @@ try {
   if (sv && Date.now() - sv.t < 3 * 3600 * 1000) showWx(sv.o, true);
 } catch (e) {}
 
+// ponto vermelho: direção da bomba mais próxima (em linha reta)
+const RAD = Math.PI / 180;
+let fuelPts = [], nearF = null, curPos = null, pickT = 0, fdOn = false;
+function setFuelPts(fs) {
+  fuelPts = fs.map(f => {
+    if (f.geometry.type === 'Point') return f.geometry.coordinates;
+    const r = f.geometry.coordinates[0]; let x = 0, y = 0;
+    r.forEach(p => { x += p[0]; y += p[1]; });
+    return [x / r.length, y / r.length];
+  });
+}
+function geoDist(a, b) {
+  const dLat = (b[1] - a[1]) * RAD, dLon = (b[0] - a[0]) * RAD;
+  const h = Math.sin(dLat / 2) ** 2 + Math.cos(a[1] * RAD) * Math.cos(b[1] * RAD) * Math.sin(dLon / 2) ** 2;
+  return 2 * 6371000 * Math.asin(Math.sqrt(h));
+}
+function geoBearing(a, b) {
+  const f1 = a[1] * RAD, f2 = b[1] * RAD, dl = (b[0] - a[0]) * RAD;
+  return (Math.atan2(Math.sin(dl) * Math.cos(f2), Math.cos(f1) * Math.sin(f2) - Math.sin(f1) * Math.cos(f2) * Math.cos(dl)) / RAD + 360) % 360;
+}
+function pickNearest(pos) {
+  curPos = pos;
+  if (Date.now() - pickT < 2500) return;
+  pickT = Date.now();
+  const cand = fuelPts.slice();
+  if (ready) {
+    try {
+      map.querySourceFeatures('openmaptiles', { sourceLayer: 'poi', filter: ['==', ['get', 'class'], 'fuel'] })
+        .forEach(f => { if (f.properties.subclass !== 'charging_station' && f.geometry.type === 'Point') cand.push(f.geometry.coordinates); });
+    } catch (e) {}
+  }
+  let best = null, bd = Infinity;
+  cand.forEach(p => { const d = geoDist(pos, p); if (d < bd) { bd = d; best = p; } });
+  nearF = best ? { p: best, d: bd } : null;
+}
+const fd = document.createElement('div');
+fd.className = 'fdot';
+fd.innerHTML = '<i></i><b></b>';
+const fdMark = new maplibregl.Marker({ element: fd, pitchAlignment: 'viewport', rotationAlignment: 'viewport' });
+function placeDot() {
+  if (!nearF || !curPos) { if (fdOn) { fdMark.remove(); fdOn = false; } return; }
+  const rel = (geoBearing(curPos, nearF.p) - map.getBearing()) * RAD, R = 48;
+  fdMark.setLngLat(curPos).setOffset([R * Math.sin(rel), -R * Math.cos(rel)]);
+  if (!fdOn) { fdMark.addTo(map); fdOn = true; }
+  const d = nearF.d;
+  fd.querySelector('b').textContent = d < 1000 ? Math.round(d / 10) * 10 + ' m' : (d / 1000).toFixed(1).replace('.', ',') + ' km';
+}
+map.on('rotate', placeDot);
+
+// incidentes de trânsito (TomTom): acidentes, obras, estradas cortadas
+const INC_NOME = { 0: 'Incidente', 1: 'Acidente', 2: 'Nevoeiro', 3: 'Condições perigosas', 4: 'Chuva forte', 5: 'Gelo',
+  7: 'Faixa cortada', 8: 'Estrada cortada', 9: 'Obras', 10: 'Vento forte', 11: 'Inundação', 14: 'Veículo avariado' };
+let incOk = 0, incTry = 0, incPos = null;
+
+function mkIcon(nome, fn) {
+  const c = document.createElement('canvas');
+  c.width = c.height = 64;
+  const x = c.getContext('2d');
+  fn(x);
+  map.addImage(nome, x.getImageData(0, 0, 64, 64), { pixelRatio: 2 });
+}
+function disco(x, cor) {
+  x.beginPath(); x.arc(32, 32, 28, 0, Math.PI * 2);
+  x.fillStyle = cor; x.fill();
+  x.lineWidth = 4; x.strokeStyle = '#fff'; x.stroke();
+  x.textAlign = 'center'; x.textBaseline = 'middle';
+}
+function criaIconesInc() {
+  mkIcon('inc-acc', x => { disco(x, '#d62828'); x.fillStyle = '#fff'; x.font = 'bold 38px sans-serif'; x.fillText('!', 32, 35); });
+  mkIcon('inc-fecha', x => { disco(x, '#d62828'); x.fillStyle = '#fff'; x.fillRect(14, 27, 36, 10); });
+  mkIcon('inc-faixa', x => { disco(x, '#f08c00'); x.fillStyle = '#fff'; x.fillRect(14, 27, 36, 10); });
+  mkIcon('inc-obras', x => { disco(x, '#f08c00'); x.font = '32px sans-serif'; x.fillText('🚧', 32, 35); });
+  mkIcon('inc-outro', x => { disco(x, '#e0a800'); x.fillStyle = '#14181c'; x.font = 'bold 38px sans-serif'; x.fillText('!', 32, 35); });
+}
+
+async function fetchInc() {
+  if (!trOn || !ready) return;
+  if (Date.now() - incTry < 120000) return;
+  const lat = last ? last.coords.latitude : map.getCenter().lat;
+  const lon = last ? last.coords.longitude : map.getCenter().lng;
+  if (incPos && Date.now() - incOk < 300000 && Math.abs(lat - incPos[0]) < 0.06 && Math.abs(lon - incPos[1]) < 0.09) return;
+  incTry = Date.now();
+  const bbox = [lon - 0.18, lat - 0.12, lon + 0.18, lat + 0.12].map(v => v.toFixed(4)).join(',');
+  const fields = '{incidents{type,geometry{type,coordinates},properties{iconCategory,magnitudeOfDelay,events{description,code,iconCategory},startTime,endTime,from,to,length}}}';
+  let j = null;
+  for (const lang of ['pt-PT', 'en-GB']) {
+    const ctl = new AbortController();
+    const t = setTimeout(() => ctl.abort(), 10000);
+    try {
+      const r = await fetch('https://api.tomtom.com/traffic/services/5/incidentDetails?key=' + KEY_TT +
+        '&bbox=' + bbox + '&fields=' + encodeURIComponent(fields) + '&language=' + lang + '&timeValidityFilter=present', { signal: ctl.signal });
+      if (r.ok) { j = await r.json(); clearTimeout(t); break; }
+    } catch (e) {}
+    clearTimeout(t);
+  }
+  if (!j) return;
+  const feats = [];
+  (j.incidents || []).forEach(it => {
+    const p = it.properties || {}, cat = p.iconCategory, g = it.geometry;
+    if (cat === 6 || !g) return; // trânsito lento já se vê nas cores das estradas
+    const ev = (p.events && p.events[0]) || {};
+    const base = {
+      cat: cat, desc: ev.description || '', from: p.from || '', to: p.to || '', end: p.endTime || '',
+      img: cat === 1 ? 'inc-acc' : cat === 8 ? 'inc-fecha' : cat === 7 ? 'inc-faixa' : cat === 9 ? 'inc-obras' : 'inc-outro'
+    };
+    let pt;
+    if (g.type === 'Point') pt = g.coordinates;
+    else if (g.type === 'LineString' && g.coordinates.length) {
+      pt = g.coordinates[Math.floor(g.coordinates.length / 2)];
+      feats.push({ type: 'Feature', properties: base, geometry: { type: 'LineString', coordinates: g.coordinates } });
+    } else return;
+    feats.push({ type: 'Feature', properties: base, geometry: { type: 'Point', coordinates: pt } });
+  });
+  map.getSource('inc').setData({ type: 'FeatureCollection', features: feats });
+  incOk = Date.now(); incPos = [lat, lon];
+}
+
 // botão do trânsito
 function setTrafego(on) {
   trOn = on;
   trBtn.classList.toggle('on', on);
   try { localStorage.setItem('tr', on ? '1' : '0'); } catch (e) {}
-  if (ready) map.setLayoutProperty('trafego', 'visibility', on ? 'visible' : 'none');
+  if (ready) {
+    map.setLayoutProperty('trafego', 'visibility', on ? 'visible' : 'none');
+    ['inc-lin', 'inc-icon'].forEach(id => map.setLayoutProperty(id, 'visibility', on ? 'visible' : 'none'));
+  }
+  if (on) fetchInc();
 }
 trBtn.addEventListener('click', () => setTrafego(!trOn));
 // de 2 em 2 minutos pede mosaicos novos
 setInterval(() => {
-  if (trOn && ready && navigator.onLine) { try { map.getSource('trafego').setTiles([trUrl()]); } catch (e) {} }
+  if (trOn && ready && navigator.onLine) { try { map.getSource('trafego').setTiles([trUrl()]); } catch (e) {} fetchInc(); }
 }, 120000);
 map.on('error', e => {
   if (e && e.sourceId === 'trafego' && trOn && Date.now() - trErr > 30000) {
