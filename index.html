@@ -248,7 +248,10 @@ map.on('load', () => {
     id: 'inc-icon', type: 'symbol', source: 'inc', minzoom: 9,
     filter: ['==', ['geometry-type'], 'Point'],
     layout: {
-      visibility: 'none', 'icon-image': ['get', 'img'], 'icon-allow-overlap': true,
+      visibility: 'none', 'icon-image': ['get', 'img'],
+      // sem empilhar: onde dois símbolos se sobrepõem, fica o mais grave (acidente, estrada cortada, faixa, obras)
+      'icon-allow-overlap': false, 'icon-padding': 3,
+      'symbol-sort-key': ['match', ['get', 'cat'], 1, 0, 8, 1, 7, 2, 9, 3, 4],
       'icon-size': ['interpolate', ['linear'], ['zoom'], 9, 0.6, 16, 1]
     }
   });
@@ -526,6 +529,20 @@ try {
 // ponto vermelho: direção da bomba mais próxima (em linha reta)
 const RAD = Math.PI / 180;
 let fuelPts = [], nearF = null, curPos = null, pickT = 0, fdOn = false;
+
+// bombas.json (opcional): lista grande só das bombas, de uma região larga, para o ponto vermelho
+// funcionar em qualquer percurso e sem rede (aceita o JSON do Overpass com "out center")
+let bigFuel = [];
+(async () => {
+  try {
+    const r = await fetch('bombas.json');
+    if (!r.ok) return;
+    const j = await r.json();
+    bigFuel = (j.elements || [])
+      .map(el => el.type === 'node' ? [el.lon, el.lat] : (el.center ? [el.center.lon, el.center.lat] : null))
+      .filter(p => p && isFinite(p[0]) && isFinite(p[1]));
+  } catch (e) {}
+})();
 function setFuelPts(fs) {
   fuelPts = fs.map(f => {
     if (f.geometry.type === 'Point') return f.geometry.coordinates;
@@ -547,7 +564,7 @@ function pickNearest(pos) {
   curPos = pos;
   if (Date.now() - pickT < 2500) return;
   pickT = Date.now();
-  const cand = fuelPts.slice();
+  const cand = fuelPts.concat(bigFuel);
   if (ready) {
     try {
       map.querySourceFeatures('openmaptiles', { sourceLayer: 'poi', filter: ['==', ['get', 'class'], 'fuel'] })
@@ -562,8 +579,9 @@ const fd = document.createElement('div');
 fd.className = 'fdot';
 fd.innerHTML = '<i></i><b></b>';
 const fdMark = new maplibregl.Marker({ element: fd, pitchAlignment: 'viewport', rotationAlignment: 'viewport' });
+const FUEL_MAX = 5000; // metros: o ponto só aparece quando a bomba mais próxima está a 5 km ou menos
 function placeDot() {
-  if (!nearF || !curPos) { if (fdOn) { fdMark.remove(); fdOn = false; } return; }
+  if (!nearF || !curPos || nearF.d > FUEL_MAX) { if (fdOn) { fdMark.remove(); fdOn = false; } return; }
   const rel = (geoBearing(curPos, nearF.p) - map.getBearing()) * RAD, R = 48;
   fdMark.setLngLat(curPos).setOffset([R * Math.sin(rel), -R * Math.cos(rel)]);
   if (!fdOn) { fdMark.addTo(map); fdOn = true; }
