@@ -401,11 +401,12 @@ function apply(p) {
 
   numsOn = numsOn ? v < BACK : v < LIMIT;
   chip.className = numsOn ? 'on' : '';
-  chip.textContent = numsOn ? 'Números de porta: visíveis' : 'Números ocultos (acima de ' + LIMIT + ' km/h)';
+  chip.textContent = plTxt || 'A localizar…';
 
   if (c.heading != null && !isNaN(c.heading) && v > 5) bearing = c.heading;
   const pos = [c.longitude, c.latitude];
   me.setLngLat(pos).addTo(map);
+  placeUpdate(pos);
   pickNearest(pos); placeDot();
 
   if (ready) map.setLayoutProperty('nums', 'visibility', numsOn ? 'visible' : 'none');
@@ -529,6 +530,73 @@ try {
   const sv = JSON.parse(localStorage.getItem('wx') || 'null');
   if (sv && Date.now() - sv.t < 3 * 3600 * 1000) showWx(sv.o, true);
 } catch (e) {}
+
+// ---- localidade e código postal (na etiqueta de cima) ----
+// Nominatim (OpenStreetMap) dá a morada; guarda-se por zonas de ~200 m para funcionar sem rede onde já passaste.
+// Sem rede e sem guardado, usa o nome da localidade mais próxima dos mapas carregados, marcado com ≈ (sem código postal).
+let plTxt = '', plPos = null, plTry = 0, plBusy = false;
+const plCache = new Map();
+try { JSON.parse(localStorage.getItem('pl') || '[]').forEach(([k, v]) => plCache.set(k, v)); } catch (e) {}
+const plKey = p => Math.round(p[1] / 0.002) + ',' + Math.round(p[0] / 0.003);
+
+function plFormat(a) {
+  const nome = a.city || a.town || a.village || a.hamlet || a.municipality || a.suburb || '';
+  let cp = String(a.postcode || '').split(';')[0].trim();
+  if (!nome && !cp) return '';
+  if (cp && a.country_code === 'lu') cp = 'L-' + cp.replace(/^L-?\s*/i, '');
+  return (cp ? cp + ' ' : '') + nome;
+}
+
+function tilesPlace(pos) {
+  if (!ready) return '';
+  let best = '', bd = 4000;
+  try {
+    map.querySourceFeatures('openmaptiles', { sourceLayer: 'place' }).forEach(f => {
+      const pr = f.properties || {};
+      if (!['city', 'town', 'village', 'hamlet'].includes(pr.class) || !pr.name || f.geometry.type !== 'Point') return;
+      const d = geoDist(pos, f.geometry.coordinates);
+      if (d < bd) { bd = d; best = pr.name; }
+    });
+  } catch (e) {}
+  return best;
+}
+
+// sem valor fiável: se ainda estamos perto do último, mantém-no; senão usa o nome dos mapas (≈) ou diz que não há dados
+function plFallback(pos) {
+  if (plPos && geoDist(plPos, pos) < 1500) return;
+  const f = tilesPlace(pos);
+  plTxt = f ? '≈ ' + f : 'Localidade: sem dados';
+}
+
+async function placeUpdate(pos) {
+  const k = plKey(pos);
+  if (plCache.has(k)) { plTxt = plCache.get(k); plPos = pos; return; }
+  if (plBusy || Date.now() < plTry) { plFallback(pos); return; }
+  plBusy = true; plTry = Date.now() + 15000; // no máximo um pedido de 15 em 15 segundos
+  try {
+    if (!navigator.onLine) throw new Error('sem rede');
+    const ctl = new AbortController();
+    const t = setTimeout(() => ctl.abort(), 6000);
+    let j;
+    try {
+      const r = await fetch('https://nominatim.openstreetmap.org/reverse?format=jsonv2&addressdetails=1&lat=' +
+        pos[1].toFixed(4) + '&lon=' + pos[0].toFixed(4), { signal: ctl.signal });
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      j = await r.json();
+    } finally { clearTimeout(t); }
+    const txt = plFormat((j && j.address) || {});
+    if (!txt) throw new Error('sem localidade');
+    plCache.set(k, txt);
+    while (plCache.size > 300) plCache.delete(plCache.keys().next().value);
+    try { localStorage.setItem('pl', JSON.stringify([...plCache])); } catch (e) {}
+    plTxt = txt; plPos = pos;
+  } catch (e) {
+    plTry = Date.now() + 45000; // depois de uma falha, espera mais
+    plFallback(pos);
+  }
+  plBusy = false;
+}
+// ---- fim da localidade ----
 
 // ponto vermelho: direção da bomba mais próxima (em linha reta)
 const RAD = Math.PI / 180;
