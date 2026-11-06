@@ -62,6 +62,7 @@
     background: rgba(20,24,28,.85); color: #fff; font: 700 11px system-ui, sans-serif;
     padding: 1px 5px; border-radius: 8px; white-space: nowrap;
   }
+  #wx.ok { opacity: .8; font-weight: 600; }
   #wx {
     position: fixed; left: 10px; top: calc(100px + env(safe-area-inset-top, 0px));
     background: #14181c; color: #fff; font-size: 14px; font-weight: 700;
@@ -213,26 +214,6 @@ map.on('load', () => {
     layout: { visibility: 'none' }, paint: { 'raster-opacity': 0.85 }
   }, etiqueta ? etiqueta.id : undefined);
 
-  // parquímetros: bola amarela com o símbolo do euro (desenhada aqui, não depende de fontes)
-  const cv = document.createElement('canvas');
-  cv.width = cv.height = 64;
-  const cx = cv.getContext('2d');
-  cx.beginPath(); cx.arc(32, 32, 28, 0, Math.PI * 2);
-  cx.fillStyle = '#f5c400'; cx.fill();
-  cx.lineWidth = 4; cx.strokeStyle = '#ffffff'; cx.stroke();
-  cx.fillStyle = '#14181c'; cx.font = 'bold 36px sans-serif';
-  cx.textAlign = 'center'; cx.textBaseline = 'middle';
-  cx.fillText('€', 32, 34);
-  map.addImage('parq-img', cx.getImageData(0, 0, 64, 64), { pixelRatio: 2 });
-  map.addSource('parq', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } });
-  map.addLayer({
-    id: 'parq', type: 'symbol', source: 'parq', minzoom: 15,
-    layout: {
-      'icon-image': 'parq-img', 'icon-allow-overlap': true,
-      'icon-size': ['interpolate', ['linear'], ['zoom'], 15, 0.55, 18, 0.9]
-    }
-  });
-
   // incidentes (acidentes, obras, estradas cortadas): só com o botão Trânsito ligado
   criaIconesInc();
   map.addSource('inc', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } });
@@ -312,7 +293,7 @@ async function loadPark() {
 const popup = new maplibregl.Popup({ closeButton: false, maxWidth: '240px' });
 map.on('click', ev => {
   if (!ready) return;
-  const layers = ['inc-icon', 'parq', 'poi-pontos', 'poi-fuel-far', 'fuel-ponto', 'fuel-area'].filter(id => map.getLayer(id));
+  const layers = ['inc-icon', 'poi-pontos', 'poi-fuel-far', 'fuel-ponto', 'fuel-area'].filter(id => map.getLayer(id));
   const p = ev.point;
   const f = map.queryRenderedFeatures([[p.x - 16, p.y - 16], [p.x + 16, p.y + 16]], { layers })[0];
   if (!f) { popup.remove(); return; }
@@ -322,8 +303,6 @@ map.on('click', ev => {
     tipo = INC_NOME[pr.cat] || 'Incidente';
     nome = [pr.desc, (pr.from || pr.to) ? (pr.from + ' → ' + pr.to) : '',
             pr.end ? 'até ' + String(pr.end).slice(0, 16).replace('T', ' ') : ''].filter(Boolean).join(' · ');
-  } else if (f.layer.id === 'parq') {
-    tipo = 'Parquímetro';
   } else if (f.layer.id.startsWith('fuel-')) {
     tipo = 'Bomba de combustível';
   } else if (pr.class === 'parking') {
@@ -377,8 +356,6 @@ async function loadParkInner() {
   const b = '(' + s + ',' + w + ',' + n + ',' + e + ')';
   const q = '[out:json][timeout:25];(' +
     'node["amenity"="fuel"]' + b + ';' +
-    'node["amenity"="parking_meter"]' + b + ';' +
-    'node["vending"="parking_tickets"]' + b + ';' +
     'way["amenity"="fuel"]' + b + ';' +
     ');out tags geom;';
   const L = await getLocal();
@@ -392,7 +369,7 @@ async function loadParkInner() {
                                         : 'Sem dados guardados nesta zona';
     map.setLayerZoomRange('poi-fuel-far', 12, 24); // bombas do mapa base voltam a aparecer de perto
   } else {
-    const fuelFeats = [], meterFeats = [];
+    const fuelFeats = [];
     d.elements.forEach(el => {
       if (el.tags && el.tags.amenity === 'fuel') {
         if (el.type === 'node') {
@@ -406,13 +383,9 @@ async function loadParkInner() {
         }
         return;
       }
-      if (el.type === 'node' && el.tags && (el.tags.amenity === 'parking_meter' || el.tags.vending === 'parking_tickets')) {
-        meterFeats.push({ type: 'Feature', properties: { name: el.tags.operator || '' }, geometry: { type: 'Point', coordinates: [el.lon, el.lat] } });
-      }
     });
     map.getSource('fuel').setData({ type: 'FeatureCollection', features: fuelFeats });
     setFuelPts(fuelFeats);
-    map.getSource('parq').setData({ type: 'FeatureCollection', features: meterFeats });
     map.setLayerZoomRange('poi-fuel-far', 12, 15); // dados bons chegaram: o ponto simples só com zoom afastado
     lastFetch = c;
     info.hidden = true; // tudo bem: esconde a linha de informação
@@ -478,13 +451,26 @@ document.addEventListener('visibilitychange', () => { if (document.visibilitySta
 const wx = document.getElementById('wx');
 let wxOk = 0, wxTry = 0, wxPos = null;
 
-function wxInfo(code, temp, vis, precip) {
-  if ([56, 57, 66, 67].includes(code)) return { t: '🧊 Chuva gelada' };
-  if ([71, 73, 75, 77, 85, 86].includes(code)) return { t: '❄️ Neve' };
-  if (temp != null && temp <= 2 && precip > 0) return { t: '🧊 Possível gelo' };
-  if ([45, 48].includes(code) || (vis != null && vis < 1000)) return { t: '🌫️ Nevoeiro', filter: 'brightness(0.82) contrast(1.1)' };
-  if ([51, 53, 55, 61, 63, 65, 80, 81, 82, 95, 96, 99].includes(code)) return { t: '🌧️ Chuva', filter: 'brightness(0.78) saturate(0.9)' };
-  return null;
+// limites de temperatura (°C) para os avisos de frio; ajustáveis
+const T_GELO = 0, T_RISCO = 3;
+function wxInfo(c) {
+  const code = c.weather_code, temp = c.temperature_2m, vis = c.visibility, precip = c.precipitation;
+  const nev = [45, 48].includes(code) || (vis != null && vis < 1000);
+  const chuva = [51, 53, 55, 61, 63, 65, 80, 81, 82, 95, 96, 99].includes(code) || precip >= 0.3;
+  const filter = nev ? 'brightness(0.82) contrast(1.1)' : chuva ? 'brightness(0.78) saturate(0.9)' : undefined;
+  let t = null;
+  if ([56, 57, 66, 67].includes(code)) t = '🧊 Chuva gelada';
+  else if ([71, 73, 75, 77, 85, 86].includes(code)) t = '❄️ Neve';
+  else if (temp != null && temp <= T_GELO) t = '🧊 Gelo provável';
+  else if (temp != null && temp <= T_RISCO && (chuva || precip > 0)) t = '🧊 Possível gelo';
+  else if (nev) t = '🌫️ Nevoeiro';
+  else if (chuva) t = '🌧️ Chuva';
+  else if (temp != null && temp <= T_RISCO) t = '🥶 Risco de gelo';
+  if (t === '❄️ Neve') return { t }; // neve não escurece o mapa
+  if (t) return { t, filter };
+  // tempo normal: só a temperatura, discreta, para se ver que a meteorologia está a funcionar
+  const dia = c.is_day !== 0;
+  return { ok: true, t: code <= 1 ? (dia ? '☀️' : '🌙') : code === 2 ? '⛅' : code === 3 ? '☁️' : '🌡️' };
 }
 
 function showWx(o, guardado) {
@@ -493,7 +479,15 @@ function showWx(o, guardado) {
   cv.style.filter = o && o.filter ? o.filter : '';
   if (!o) { wx.hidden = true; return; }
   wx.hidden = false;
-  wx.textContent = o.t + (o.temp != null ? ' ' + Math.round(o.temp) + '°' : '') + (guardado ? ' (guardado)' : '');
+  wx.className = o.ok ? 'ok' : '';
+  wx.textContent = o.t + (o.temp != null ? ' ' + o.temp.toFixed(1).replace('.', ',') + '°' : '') + (guardado ? ' (guardado)' : '');
+}
+
+function wxErro(motivo) {
+  // só mostra o erro se ainda não houver nenhum valor recente
+  if (wxOk) return;
+  wx.hidden = false; wx.className = 'ok';
+  wx.textContent = '🌡️ Meteo: ' + motivo;
 }
 
 async function fetchWx() {
@@ -502,22 +496,32 @@ async function fetchWx() {
   const lon = last ? last.coords.longitude : map.getCenter().lng;
   if (wxPos && Date.now() - wxOk < 900000 && Math.abs(lat - wxPos[0]) < 0.15 && Math.abs(lon - wxPos[1]) < 0.2) return;
   wxTry = Date.now();
-  const ctl = new AbortController();
-  const t = setTimeout(() => ctl.abort(), 8000);
-  try {
-    const u = 'https://api.open-meteo.com/v1/forecast?latitude=' + lat.toFixed(3) + '&longitude=' + lon.toFixed(3) +
-      '&current=temperature_2m,precipitation,weather_code,visibility&timezone=auto';
-    const r = await fetch(u, { signal: ctl.signal });
-    if (!r.ok) throw new Error('HTTP ' + r.status);
-    const c = (await r.json()).current;
-    if (!c) throw new Error('sem dados');
-    const o = wxInfo(c.weather_code, c.temperature_2m, c.visibility, c.precipitation);
-    if (o) o.temp = c.temperature_2m;
-    wxOk = Date.now(); wxPos = [lat, lon];
-    showWx(o);
-    try { localStorage.setItem('wx', JSON.stringify({ t: wxOk, o })); } catch (e) {}
-  } catch (e) { /* sem rede: fica o último valor */ }
-  clearTimeout(t);
+  if (!navigator.onLine) { wxErro('sem rede'); return; }
+  // primeiro com a visibilidade; se o serviço a recusar, tenta sem ela
+  const LISTAS = ['temperature_2m,precipitation,weather_code,is_day,visibility', 'temperature_2m,precipitation,weather_code,is_day'];
+  let c = null, motivo = '';
+  for (const v of LISTAS) {
+    const ctl = new AbortController();
+    const t = setTimeout(() => ctl.abort(), 8000);
+    try {
+      const r = await fetch('https://api.open-meteo.com/v1/forecast?latitude=' + lat.toFixed(3) + '&longitude=' + lon.toFixed(3) +
+        '&current=' + v + '&timezone=auto', { signal: ctl.signal });
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      const j = await r.json();
+      if (!j || !j.current) throw new Error('sem dados');
+      c = j.current;
+    } catch (e) {
+      motivo = e.name === 'AbortError' ? 'tempo esgotado' : (e instanceof TypeError ? 'bloqueado/rede' : e.message);
+    }
+    clearTimeout(t);
+    if (c) break;
+  }
+  if (!c) { wxErro(motivo); return; }
+  const o = wxInfo(c);
+  o.temp = c.temperature_2m;
+  wxOk = Date.now(); wxPos = [lat, lon];
+  showWx(o);
+  try { localStorage.setItem('wx', JSON.stringify({ t: wxOk, o })); } catch (e) {}
 }
 
 // ao abrir, usa o último valor se tiver menos de 3 horas
