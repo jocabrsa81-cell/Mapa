@@ -491,11 +491,13 @@ function wxErro(motivo) {
   wx.textContent = '🌡️ Meteo: ' + motivo;
 }
 
+// quando se pede o tempo de novo: passados 5 min, ou se andaste mais de ~4 km (no mínimo 1 min entre pedidos)
+const WX_MS = 5 * 60 * 1000, WX_DLAT = 0.04, WX_DLON = 0.06, WX_GAP = 60 * 1000;
 async function fetchWx() {
-  if (Date.now() - wxTry < 120000) return;
+  if (Date.now() - wxTry < WX_GAP) return;
   const lat = last ? last.coords.latitude : map.getCenter().lat;
   const lon = last ? last.coords.longitude : map.getCenter().lng;
-  if (wxPos && Date.now() - wxOk < 900000 && Math.abs(lat - wxPos[0]) < 0.15 && Math.abs(lon - wxPos[1]) < 0.2) return;
+  if (wxPos && Date.now() - wxOk < WX_MS && Math.abs(lat - wxPos[0]) < WX_DLAT && Math.abs(lon - wxPos[1]) < WX_DLON) return;
   wxTry = Date.now();
   if (!navigator.onLine) { wxErro('sem rede'); return; }
   // primeiro com a visibilidade; se o serviço a recusar, tenta sem ela
