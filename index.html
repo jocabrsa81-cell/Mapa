@@ -122,11 +122,29 @@
     display: flex; align-items: center; gap: 14px;
   }
   #tfb {
-    position: fixed; right: 0; width: 10px; z-index: 3; pointer-events: none; overflow: hidden;
-    top: calc(300px + env(safe-area-inset-top, 0px)); bottom: calc(250px + env(safe-area-inset-bottom, 0px));
-    background: #2fb344; border-radius: 5px 0 0 5px; box-shadow: 0 0 0 2px rgba(255,255,255,.9);
+    position: fixed; right: 6px; width: 64px; z-index: 3; pointer-events: none;
+    top: calc(300px + env(safe-area-inset-top, 0px)); bottom: calc(240px + env(safe-area-inset-bottom, 0px));
   }
-  #tfb i { position: absolute; left: 0; right: 0; min-height: 5px; display: block; }
+  #tfb .trk {
+    position: absolute; top: 28px; bottom: 54px; right: 25px; width: 14px; box-sizing: content-box;
+    background: #c9d0d7; border: 2px solid #fff; border-radius: 9px; overflow: hidden;
+    box-shadow: 0 0 0 1.5px rgba(20,24,28,.55), 0 2px 6px rgba(0,0,0,.35);
+  }
+  #tfb .trk i { position: absolute; left: 0; right: 0; min-height: 5px; display: block; }
+  #tfb .fl { position: absolute; top: 0; right: 18px; font-size: 22px; line-height: 1; filter: drop-shadow(0 1px 2px rgba(0,0,0,.6)); }
+  #tfb .ar {
+    position: absolute; bottom: 24px; right: 21px; width: 22px; height: 24px; background: #1a73e8;
+    clip-path: polygon(50% 0, 100% 100%, 50% 74%, 0 100%);
+  }
+  #tfb .lb {
+    position: absolute; bottom: 0; right: 4px; left: 0; text-align: center; font: 700 12px system-ui, sans-serif; color: #fff;
+    background: rgba(20,24,28,.88); border-radius: 9px; padding: 2px 4px; white-space: nowrap;
+  }
+  #tfb .ic {
+    position: absolute; right: 44px; width: 24px; height: 24px; border-radius: 50%; background: #fff; border: 2.5px solid #d62828;
+    font-size: 14px; line-height: 19px; text-align: center; box-shadow: 0 1px 4px rgba(0,0,0,.45);
+  }
+  #pn { z-index: 6; }
   body.nav #tfb { top: calc(330px + env(safe-area-inset-top, 0px)); }
   #tba { font-size: 38px; line-height: 1; }
   #tbd { font-size: 26px; font-weight: 800; line-height: 1.1; }
@@ -158,7 +176,7 @@
 <button id="go">Destino</button>
 <button id="nb">Rumo</button>
 <button id="vz">🔊 Voz</button>
-<div id="tfb" hidden></div>
+<div id="tfb" hidden><div class="trk" id="trk"></div><div class="fl">🏁</div><div class="ar"></div><div class="lb" id="tlb"></div></div>
 <div id="tb" hidden><div id="tba"></div><div><div id="tbd"></div><div id="tbs"></div></div></div>
 <div id="cx" hidden></div>
 <div id="pk" hidden>
@@ -1200,31 +1218,42 @@ function guiaLimpa() {
 // ---- fim das instruções e voz ----
 
 // ---- barra lateral do trânsito no trajeto ----
-// Do fundo (onde estás) ao topo (destino): verde = livre; amarelo/laranja/vermelho = trânsito; castanho = estrada cortada.
-const tfb = document.getElementById('tfb');
+// Do fundo (a tua seta, com os km que faltam) ao topo (bandeira). Pista cinzenta; trânsito a cores; ícones nos problemas.
+const tfb = document.getElementById('tfb'), trk = document.getElementById('trk'), tlb = document.getElementById('tlb');
 const NOMES_TR = { JAM: 'Trânsito', ROAD_WORK: 'Obras', ROAD_CLOSURE: 'Estrada cortada', OTHER: 'Incidente' };
+let tfIcons = [];
 function barraTick(trav) {
   const rem = route.total - trav;
   if (!route.tr || rem <= 0) { barraLimpa(); return; }
   tfb.hidden = false;
-  tfb.textContent = '';
-  let prox = null;
-  route.tr.forEach(t => {
+  tlb.textContent = rem >= 10000 ? Math.round(rem / 1000) + ' km' : distTxt(rem);
+  trk.textContent = '';
+  tfIcons.forEach(e => e.remove()); tfIcons = [];
+  const th = trk.offsetHeight, tt = trk.offsetTop;
+  let prox = null, ultimoY = null;
+  route.tr.filter(t => t.b > trav).sort((x, y) => x.a - y.a).forEach(t => {
     const a = Math.max(t.a, trav), b = t.b;
-    if (b <= a) return;
     const i = document.createElement('i');
     i.style.background = t.cor;
     i.style.bottom = ((a - trav) / rem * 100) + '%';
     i.style.height = Math.max(0.4, (b - a) / rem * 100) + '%';
-    tfb.appendChild(i);
+    trk.appendChild(i);
     if (!prox || a < prox.a) prox = { a, t };
+    const sym = t.cat === 'ROAD_CLOSURE' ? '⛔' : t.cat === 'ROAD_WORK' ? '🚧' : t.cat === 'OTHER' ? '⚠️' : (t.delay >= 120 ? '🚗' : '');
+    if (!sym) return;
+    const y = tt + th * (1 - (((a + b) / 2) - trav) / rem);
+    if (ultimoY !== null && Math.abs(ultimoY - y) < 30) return; // evita ícones em cima uns dos outros
+    ultimoY = y;
+    const ic = document.createElement('div');
+    ic.className = 'ic'; ic.style.top = Math.round(y - 12) + 'px'; ic.style.borderColor = t.cor; ic.textContent = sym;
+    tfb.appendChild(ic); tfIcons.push(ic);
   });
   if (prox && prox.a - trav < 40000) {
     const d = Math.max(0, prox.a - trav);
     route.nextTr = NOMES_TR[prox.t.cat] + ' à frente: ' + distTxt(d) + (prox.t.delay >= 60 ? ' (+' + fmtMin(prox.t.delay) + ')' : '');
   } else route.nextTr = null;
 }
-function barraLimpa() { tfb.hidden = true; tfb.textContent = ''; }
+function barraLimpa() { tfb.hidden = true; trk.textContent = ''; tfIcons.forEach(e => e.remove()); tfIcons = []; }
 // ---- fim da barra do trânsito ----
 // ---- fim do destino e rota ----
 
