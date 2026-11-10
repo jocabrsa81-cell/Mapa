@@ -100,6 +100,22 @@
   #rbp { font-size: 13px; margin-top: 4px; color: #9cc3ff; }
   #rb button { background: #1a73e8; color: #fff; border: 0; border-radius: 10px; padding: 9px 14px; margin: 8px 8px 0 0; font-size: 14px; font-weight: 700; }
   #rb button.x { background: #b3261e; }
+  #nb {
+    position: fixed; left: 10px; top: calc(200px + env(safe-area-inset-top, 0px));
+    background: #14181c; color: #fff; border: 0; border-radius: 12px; padding: 10px 12px;
+    font-size: 14px; font-weight: 700; box-shadow: 0 2px 10px rgba(0,0,0,.35);
+  }
+  #nb.on { background: #1a7f37; }
+  #cx { position: fixed; left: 50%; top: 50%; width: 0; height: 0; z-index: 4; pointer-events: none; }
+  #cx::before, #cx::after { content: ''; position: absolute; background: #d62828; box-shadow: 0 0 0 2px #fff; }
+  #cx::before { left: -16px; top: -2px; width: 32px; height: 4px; }
+  #cx::after { left: -2px; top: -16px; width: 4px; height: 32px; }
+  #pk {
+    position: fixed; left: 12px; right: 12px; bottom: calc(94px + env(safe-area-inset-bottom, 0px)); z-index: 6;
+    background: #14181c; color: #fff; border-radius: 14px; padding: 10px 12px; box-shadow: 0 2px 10px rgba(0,0,0,.4);
+  }
+  #pk button { background: #1a7f37; color: #fff; border: 0; border-radius: 10px; padding: 10px 14px; margin: 8px 8px 0 0; font-size: 15px; font-weight: 700; }
+  #pk button.x { background: #3a4048; }
   .dst { font-size: 30px; line-height: 1; filter: drop-shadow(0 1px 2px rgba(0,0,0,.6)); }
 </style>
 </head>
@@ -113,8 +129,15 @@
 <button id="sv">Guardar zona</button>
 <button id="tr">Trânsito</button>
 <button id="go">Destino</button>
+<button id="nb">Rumo</button>
+<div id="cx" hidden></div>
+<div id="pk" hidden>
+  <div><b>Move o mapa até a cruz ficar no destino</b></div>
+  <div><button id="pkOk">Confirmar aqui</button><button class="x" id="pkNo">Cancelar</button></div>
+</div>
 <div id="sp" hidden>
   <div class="lin"><input id="sq" type="search" placeholder="Rua, número, localidade" autocomplete="off" enterkeyhint="search"><button id="sb">Procurar</button><button class="x" id="sx">X</button></div>
+  <button id="sm" style="margin-top:8px;padding:10px 14px">Escolher no mapa</button>
   <div id="sr"></div>
 </div>
 <div id="rb" hidden>
@@ -138,6 +161,8 @@ const spd = document.getElementById('spd');
 const chip = document.getElementById('chip');
 const rec = document.getElementById('rec');
 
+let northUp = false;
+try { northUp = localStorage.getItem('nu') === '1'; } catch (e) {}
 let follow = true, numsOn = false, bearing = 0, last = null, ready = false;
 var busy = false, lastFail = 0, lastFetch = null;
 
@@ -458,6 +483,7 @@ function apply(p) {
   if (c.heading != null && !isNaN(c.heading) && v > 5) bearing = c.heading;
   const pos = [c.longitude, c.latitude];
   me.setLngLat(pos).addTo(map);
+  me.setRotation(northUp ? bearing : 0);
   placeUpdate(pos);
   pickNearest(pos); placeDot();
   routeTick(pos, c.accuracy);
@@ -467,7 +493,7 @@ function apply(p) {
   if (follow && ready) {
     const h = window.innerHeight;
     map.easeTo({
-      center: pos, bearing: bearing, zoom: numsOn ? 17.3 : 15.5,
+      center: pos, bearing: northUp ? 0 : bearing, zoom: numsOn ? 17.3 : 15.5,
       padding: { top: Math.round(h * 0.4), bottom: 0, left: 0, right: 0 },
       duration: 900, essential: true
     });
@@ -488,6 +514,8 @@ if ('geolocation' in navigator) {
 }
 
 map.on('dragstart', () => { follow = false; rec.hidden = false; autoFit = false; });
+// zoom com os dedos: deixa de seguir, senão a app volta a aproximar a cada posição
+map.on('zoomstart', e => { if (e.originalEvent) { follow = false; rec.hidden = false; autoFit = false; } });
 rec.addEventListener('click', () => { follow = true; rec.hidden = true; if (last) apply(last); });
 
 let lock = null;
@@ -776,6 +804,30 @@ async function geocode(q) {
   });
 }
 
+// número não existe: procura os mais próximos que existam (2 de diferença primeiro: mesmo lado da rua; depois 1)
+async function vizinhos(q, ref) {
+  const m = q.match(/(^|[\s,])(\d{1,3})([A-Za-z]?)(?=[\s,]|$)/);
+  if (!m) return [];
+  const n = +m[2];
+  const cands = [n - 2, n + 2, n - 1, n + 1].filter(c => c > 0);
+  const lat = ref.lat, lon = ref.lon;
+  const res = await Promise.all(cands.map(async c => {
+    const q2 = q.replace(m[0], m[1] + c);
+    try {
+      const j = await pedido('https://api.tomtom.com/search/2/geocode/' + encodeURIComponent(q2) + '.json?key=' + KEY_TT +
+        '&limit=1&language=pt-PT&countrySet=LU,FR,BE,DE,PT,ES&lat=' + lat.toFixed(4) + '&lon=' + lon.toFixed(4));
+      const x = (j.results || [])[0];
+      if (!x || x.type !== 'Point Address' || !x.position || !x.address || String(x.address.streetNumber) !== String(c)) return null;
+      if (geoDist([lon, lat], [x.position.lon, x.position.lat]) > 400) return null; // outra rua ou localidade
+      return { nome: x.address.freeformAddress || q2, lat: x.position.lat, lon: x.position.lon, exato: true, aviso: false, num: c, de: n };
+    } catch (e) { return null; }
+  }));
+  // no máximo um abaixo e um acima, os mais próximos de n
+  const ok = res.filter(Boolean).sort((a, b) => Math.abs(a.num - n) - Math.abs(b.num - n));
+  const baixo = ok.find(r => r.num < n), cima = ok.find(r => r.num > n);
+  return [baixo, cima].filter(Boolean).sort((a, b) => Math.abs(a.num - n) - Math.abs(b.num - n));
+}
+
 async function pesquisa() {
   const q = sqEl.value.trim();
   if (q.length < 3) return;
@@ -797,6 +849,25 @@ async function pesquisa() {
     d.addEventListener('click', () => defineDestino(it));
     srEl.appendChild(d);
   });
+  // o número pedido não existe: oferece os vizinhos (ex.: 23 não existe -> 21 e 25)
+  const sem = lista.find(x => x.aviso);
+  if (sem && !lista.some(x => x.exato && !x.aviso && x.nome === sem.nome) && navigator.onLine) {
+    const w = document.createElement('div'); w.className = 'msg'; w.textContent = 'A procurar números vizinhos…'; srEl.appendChild(w);
+    let v = [];
+    try { v = await vizinhos(q, sem); } catch (e) {}
+    if (sqEl.value.trim() !== q) return; // entretanto escreveste outra coisa
+    if (!v.length) { w.textContent = 'Sem números vizinhos nos dados.'; return; }
+    w.remove();
+    v.forEach(it => {
+      const d = document.createElement('div'); d.className = 'it';
+      d.appendChild(document.createTextNode(it.nome));
+      const a = document.createElement('div'); a.className = 'ok';
+      a.textContent = 'nº ' + it.num + ' (vizinho do ' + it.de + ', que não existe nos dados)';
+      d.appendChild(a);
+      d.addEventListener('click', () => defineDestino(it));
+      srEl.appendChild(d);
+    });
+  }
 }
 
 function defineDestino(it) {
@@ -809,11 +880,56 @@ function defineDestino(it) {
   calcRota(true);
 }
 
-// toque longo no mapa: escolhe o ponto como destino (só parado)
-map.on('contextmenu', e => {
+// escolher o destino no mapa: toque longo (0,7 s) ou botão "Escolher no mapa" com cruz no centro
+async function nomeDe(lat, lon) {
+  try {
+    const j = await pedido('https://api.tomtom.com/search/2/reverseGeocode/' + lat.toFixed(5) + ',' + lon.toFixed(5) + '.json?key=' + KEY_TT + '&language=pt-PT');
+    const a = j.addresses && j.addresses[0] && j.addresses[0].address;
+    return (a && a.freeformAddress) || '';
+  } catch (e) { return ''; }
+}
+async function pontoMapa(lat, lon) {
   if (curV > 10) { avisa('Pára o carro para escolher o destino'); return; }
-  defineDestino({ nome: 'Ponto escolhido no mapa', lat: e.lngLat.lat, lon: e.lngLat.lng, exato: true, aviso: false });
+  try { navigator.vibrate && navigator.vibrate(40); } catch (e) {}
+  defineDestino({ nome: 'Ponto escolhido no mapa', lat, lon, exato: true, aviso: false });
+  const alvo = dest;
+  const n = await nomeDe(lat, lon);
+  if (n && dest === alvo) { dest.nome = n; if (route) mostraRota(route.total); }
+}
+let lpT = null, lpPt = null;
+const lpCancel = () => { clearTimeout(lpT); lpT = null; };
+map.on('touchstart', e => {
+  lpCancel();
+  if (!e.originalEvent || !e.originalEvent.touches || e.originalEvent.touches.length !== 1) return;
+  lpPt = e.point;
+  lpT = setTimeout(() => { lpT = null; pontoMapa(e.lngLat.lat, e.lngLat.lng); }, 700);
 });
+map.on('touchmove', e => { if (lpT && lpPt && e.point.dist(lpPt) > 12) lpCancel(); });
+['touchend', 'touchcancel', 'dragstart', 'zoomstart'].forEach(ev => map.on(ev, lpCancel));
+
+const cx = document.getElementById('cx'), pk = document.getElementById('pk');
+document.getElementById('sm').addEventListener('click', () => {
+  spEl.hidden = true; follow = false; autoFit = false; rec.hidden = false;
+  cx.hidden = false; pk.hidden = false;
+});
+document.getElementById('pkNo').addEventListener('click', () => { cx.hidden = true; pk.hidden = true; });
+document.getElementById('pkOk').addEventListener('click', () => {
+  const c = map.getContainer(), ll = map.unproject([c.clientWidth / 2, c.clientHeight / 2]);
+  cx.hidden = true; pk.hidden = true;
+  pontoMapa(ll.lat, ll.lng);
+});
+
+// botão Rumo/Norte: mapa com a frente do carro para cima, ou com o norte para cima
+const nb = document.getElementById('nb');
+function nbEstado() { nb.textContent = northUp ? 'Norte' : 'Rumo'; nb.classList.toggle('on', northUp); }
+nb.addEventListener('click', () => {
+  northUp = !northUp;
+  try { localStorage.setItem('nu', northUp ? '1' : '0'); } catch (e) {}
+  nbEstado();
+  me.setRotation(northUp ? bearing : 0);
+  map.easeTo({ bearing: northUp ? 0 : bearing, duration: 600 });
+});
+nbEstado();
 
 async function calcRota(ajusta) {
   if (!dest || routeBusy) return;
@@ -858,6 +974,7 @@ function mostraRota(rest) {
   const seg = route.total > 0 ? route.tempo * rest / route.total : 0;
   rbt.textContent = fmtHora(Date.now() + seg * 1000) + ' · ' + fmtMin(seg) + ' · ' + fmtKm(rest);
   const n = [];
+  if (dest && dest.nome) n.push(dest.nome.slice(0, 70));
   if (route.atraso >= 120) n.push('+' + fmtMin(route.atraso) + ' por trânsito');
   if (dest && dest.aviso) n.push('⚠ número não encontrado, destino na rua');
   rbn.hidden = !n.length; rbn.textContent = n.join(' · ');
@@ -917,7 +1034,9 @@ function parquesPerto() {
       });
     } catch (e) {}
     lista.sort((a, b) => a.d - b.d);
-    const top = lista.slice(0, 3), feats = [];
+    // o mesmo parque aparece várias vezes (um ponto por mosaico/lugar): ignora o que está a menos de 40 m de outro já escolhido
+    const top = [], feats = [];
+    lista.forEach(x => { if (top.length < 3 && !top.some(y => geoDist(y.c, x.c) < 40)) top.push(x); });
     top.forEach(x => {
       feats.push({ type: 'Feature', properties: {}, geometry: { type: 'LineString', coordinates: [d0, x.c] } });
       feats.push({ type: 'Feature', properties: { txt: fmtKm(x.d) }, geometry: { type: 'Point', coordinates: x.c } });
