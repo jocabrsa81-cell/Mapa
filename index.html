@@ -73,6 +73,34 @@
     clip-path: polygon(50% 0, 100% 100%, 50% 74%, 0 100%);
     filter: drop-shadow(0 1px 2px rgba(0,0,0,.5));
   }
+  #go {
+    position: fixed; left: 10px; top: calc(150px + env(safe-area-inset-top, 0px));
+    background: #14181c; color: #fff; border: 0; border-radius: 12px; padding: 10px 12px;
+    font-size: 14px; font-weight: 700; box-shadow: 0 2px 10px rgba(0,0,0,.35);
+  }
+  #sp {
+    position: fixed; left: 0; right: 0; top: 0; z-index: 10; background: #14181c; color: #fff;
+    padding: calc(10px + env(safe-area-inset-top, 0px)) 12px 12px; box-shadow: 0 4px 14px rgba(0,0,0,.5);
+  }
+  #sp .lin { display: flex; gap: 8px; }
+  #sq { flex: 1; min-width: 0; font-size: 16px; padding: 11px 12px; border-radius: 10px; border: 0; background: #fff; color: #14181c; }
+  #sp button { background: #1a73e8; color: #fff; border: 0; border-radius: 10px; padding: 0 14px; font-size: 15px; font-weight: 700; }
+  #sp button.x { background: #3a4048; }
+  #sr { margin-top: 8px; max-height: 52vh; overflow-y: auto; }
+  #sr .it { padding: 10px 6px; border-top: 1px solid #2c3238; font-size: 15px; }
+  #sr .av { color: #ffb84d; font-size: 12px; margin-top: 2px; }
+  #sr .ok { color: #7bd88f; font-size: 12px; margin-top: 2px; }
+  #sr .msg { padding: 10px 6px; font-size: 14px; opacity: .85; }
+  #rb {
+    position: fixed; left: 12px; right: 12px; bottom: calc(94px + env(safe-area-inset-bottom, 0px)); z-index: 5;
+    background: #14181c; color: #fff; border-radius: 14px; padding: 10px 12px; box-shadow: 0 2px 10px rgba(0,0,0,.4);
+  }
+  #rbt { font-size: 17px; font-weight: 800; }
+  #rbn { font-size: 12px; opacity: .8; margin-top: 2px; }
+  #rbp { font-size: 13px; margin-top: 4px; color: #9cc3ff; }
+  #rb button { background: #1a73e8; color: #fff; border: 0; border-radius: 10px; padding: 9px 14px; margin: 8px 8px 0 0; font-size: 14px; font-weight: 700; }
+  #rb button.x { background: #b3261e; }
+  .dst { font-size: 30px; line-height: 1; filter: drop-shadow(0 1px 2px rgba(0,0,0,.6)); }
 </style>
 </head>
 <body>
@@ -84,6 +112,15 @@
 <button id="rec" hidden>Centrar</button>
 <button id="sv">Guardar zona</button>
 <button id="tr">Trânsito</button>
+<button id="go">Destino</button>
+<div id="sp" hidden>
+  <div class="lin"><input id="sq" type="search" placeholder="Rua, número, localidade" autocomplete="off" enterkeyhint="search"><button id="sb">Procurar</button><button class="x" id="sx">X</button></div>
+  <div id="sr"></div>
+</div>
+<div id="rb" hidden>
+  <div id="rbt"></div><div id="rbn" hidden></div><div id="rbp" hidden></div>
+  <div><button id="rbP">P perto do destino</button><button class="x" id="rbX">Parar</button></div>
+</div>
 <div id="pn" hidden>
   Guarda o mapa à volta do centro do ecrã, para usar com sinal fraco. Usa wifi.
   <div>
@@ -102,6 +139,7 @@ const chip = document.getElementById('chip');
 const rec = document.getElementById('rec');
 
 let follow = true, numsOn = false, bearing = 0, last = null, ready = false;
+var busy = false, lastFail = 0, lastFetch = null;
 
 // trânsito em tempo real (TomTom): precisa de rede e não é guardado no telemóvel
 const KEY_TT = 'vKk6oa9UQ0WvDI9KYPST3Qq0VAdXguvI';
@@ -239,6 +277,19 @@ map.on('load', () => {
 
   // números de porta por cima das áreas das bombas (mas abaixo dos pontos P, E, WC)
   map.moveLayer('nums', 'poi-pontos');
+
+  // rota (por baixo dos números de porta e dos pontos) e ligações aos parques perto do destino
+  map.addSource('rota', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } });
+  map.addLayer({ id: 'rota-borda', type: 'line', source: 'rota', layout: { 'line-cap': 'round', 'line-join': 'round' },
+    paint: { 'line-color': '#fff', 'line-width': ['interpolate', ['linear'], ['zoom'], 8, 6, 17, 14], 'line-opacity': 0.95 } }, 'nums');
+  map.addLayer({ id: 'rota-lin', type: 'line', source: 'rota', layout: { 'line-cap': 'round', 'line-join': 'round' },
+    paint: { 'line-color': '#0b57d0', 'line-width': ['interpolate', ['linear'], ['zoom'], 8, 3, 17, 8] } }, 'nums');
+  map.addSource('pperto', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } });
+  map.addLayer({ id: 'pp-lin', type: 'line', source: 'pperto', filter: ['==', ['geometry-type'], 'LineString'],
+    paint: { 'line-color': '#1c6dd0', 'line-width': 3, 'line-dasharray': [2, 2] } });
+  map.addLayer({ id: 'pp-txt', type: 'symbol', source: 'pperto', filter: ['==', ['geometry-type'], 'Point'],
+    layout: { 'text-field': ['get', 'txt'], 'text-font': ['Noto Sans Bold'], 'text-size': 13, 'text-offset': [0, -1.6], 'text-allow-overlap': true },
+    paint: { 'text-color': '#0b3d91', 'text-halo-color': '#fff', 'text-halo-width': 2 } });
 
   ready = true;
   if (last) apply(last);
@@ -398,6 +449,7 @@ function apply(p) {
   const c = p.coords;
   const v = (c.speed != null && !isNaN(c.speed)) ? c.speed * 3.6 : 0;
   spd.textContent = Math.round(v);
+  curV = v;
 
   numsOn = numsOn ? v < BACK : v < LIMIT;
   chip.className = numsOn ? 'on' : '';
@@ -408,6 +460,7 @@ function apply(p) {
   me.setLngLat(pos).addTo(map);
   placeUpdate(pos);
   pickNearest(pos); placeDot();
+  routeTick(pos, c.accuracy);
 
   if (ready) map.setLayoutProperty('nums', 'visibility', numsOn ? 'visible' : 'none');
 
@@ -434,7 +487,7 @@ if ('geolocation' in navigator) {
   chip.textContent = 'Este telemóvel não suporta GPS no browser';
 }
 
-map.on('dragstart', () => { follow = false; rec.hidden = false; });
+map.on('dragstart', () => { follow = false; rec.hidden = false; autoFit = false; });
 rec.addEventListener('click', () => { follow = true; rec.hidden = true; if (last) apply(last); });
 
 let lock = null;
@@ -663,6 +716,228 @@ function placeDot() {
   fd.querySelector('b').textContent = d < 1000 ? Math.round(d / 10) * 10 + ' m' : (d / 1000).toFixed(1).replace('.', ',') + ' km';
 }
 map.on('rotate', placeDot);
+
+// ---- destino e rota (TomTom) ----
+// Pesquisa de morada com número (TomTom; Nominatim se falhar), rota com trânsito e parques perto do destino.
+// Precisa de rede para pesquisar e para calcular/recalcular a rota; uma rota já calculada continua no ecrã sem rede.
+let curV = 0, dest = null, route = null, routeT = 0, routeBusy = false, offCnt = 0, progT = 0, autoFit = false, destMark = null;
+const goBtn = document.getElementById('go'), spEl = document.getElementById('sp'), sqEl = document.getElementById('sq');
+const srEl = document.getElementById('sr'), rbEl = document.getElementById('rb'), rbt = document.getElementById('rbt');
+const rbn = document.getElementById('rbn'), rbp = document.getElementById('rbp');
+
+const fmtKm = m => m < 1000 ? Math.round(m / 10) * 10 + ' m' : (m / 1000).toFixed(1).replace('.', ',') + ' km';
+const fmtMin = s => { const m = Math.max(1, Math.round(s / 60)); return m < 60 ? m + ' min' : Math.floor(m / 60) + ' h ' + String(m % 60).padStart(2, '0'); };
+const fmtHora = ms => { const d = new Date(ms); return String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0'); };
+
+function avisa(txt) {
+  info.hidden = false; info.textContent = txt;
+  setTimeout(() => { if (info.textContent === txt) info.hidden = true; }, 5000);
+}
+
+function abrePesquisa() {
+  if (curV > 10) { avisa('Pára o carro para escolher o destino'); return; }
+  spEl.hidden = false; sqEl.focus();
+}
+goBtn.addEventListener('click', abrePesquisa);
+document.getElementById('sx').addEventListener('click', () => { spEl.hidden = true; });
+document.getElementById('sb').addEventListener('click', pesquisa);
+sqEl.addEventListener('keydown', e => { if (e.key === 'Enter') pesquisa(); });
+
+async function pedido(url) {
+  const ctl = new AbortController();
+  const t = setTimeout(() => ctl.abort(), 9000);
+  try {
+    const r = await fetch(url, { signal: ctl.signal });
+    if (!r.ok) throw new Error(r.status === 429 ? 'limite diário atingido' : 'HTTP ' + r.status);
+    return await r.json();
+  } finally { clearTimeout(t); }
+}
+
+// devolve uma lista { nome, lat, lon, exato, aviso }; "exato" = a TomTom/OSM tem mesmo esse número de porta
+async function geocode(q) {
+  const lat = last ? last.coords.latitude : map.getCenter().lat, lon = last ? last.coords.longitude : map.getCenter().lng;
+  const querNum = /\d/.test(q);
+  try {
+    const j = await pedido('https://api.tomtom.com/search/2/geocode/' + encodeURIComponent(q) + '.json?key=' + KEY_TT +
+      '&limit=6&language=pt-PT&countrySet=LU,FR,BE,DE,PT,ES&lat=' + lat.toFixed(4) + '&lon=' + lon.toFixed(4));
+    const out = [];
+    (j.results || []).forEach(x => {
+      if (!x.position) return;
+      const exato = x.type === 'Point Address' || x.type === 'POI';
+      const nome = ((x.poi && x.poi.name) ? x.poi.name + ', ' : '') + ((x.address && x.address.freeformAddress) || '');
+      out.push({ nome, lat: x.position.lat, lon: x.position.lon, exato, aviso: querNum && !exato });
+    });
+    if (out.length) return out;
+  } catch (e) {}
+  const j = await pedido('https://nominatim.openstreetmap.org/search?format=jsonv2&addressdetails=1&limit=5&q=' + encodeURIComponent(q));
+  return (j || []).map(x => {
+    const exato = !!(x.address && x.address.house_number);
+    return { nome: x.display_name, lat: +x.lat, lon: +x.lon, exato, aviso: querNum && !exato };
+  });
+}
+
+async function pesquisa() {
+  const q = sqEl.value.trim();
+  if (q.length < 3) return;
+  srEl.textContent = '';
+  const m = document.createElement('div'); m.className = 'msg'; m.textContent = 'A procurar…'; srEl.appendChild(m);
+  if (!navigator.onLine) { m.textContent = 'Sem rede: não dá para pesquisar moradas.'; return; }
+  let lista;
+  try { lista = await geocode(q); }
+  catch (e) { m.textContent = 'Falhou a pesquisa (' + (e.name === 'AbortError' ? 'tempo esgotado' : e.message) + ').'; return; }
+  srEl.textContent = '';
+  if (!lista.length) { m.textContent = 'Nada encontrado.'; srEl.appendChild(m); return; }
+  lista.forEach(it => {
+    const d = document.createElement('div'); d.className = 'it';
+    d.appendChild(document.createTextNode(it.nome));
+    const a = document.createElement('div');
+    a.className = it.aviso ? 'av' : 'ok';
+    a.textContent = it.aviso ? '⚠ número não encontrado: aponta para a rua' : (it.exato ? 'ponto exato' : 'rua / zona');
+    d.appendChild(a);
+    d.addEventListener('click', () => defineDestino(it));
+    srEl.appendChild(d);
+  });
+}
+
+function defineDestino(it) {
+  dest = { lat: it.lat, lon: it.lon, nome: it.nome, aviso: !!it.aviso };
+  spEl.hidden = true; sqEl.blur();
+  if (destMark) destMark.remove();
+  const el = document.createElement('div'); el.className = 'dst'; el.textContent = '🏁';
+  destMark = new maplibregl.Marker({ element: el, anchor: 'bottom' }).setLngLat([it.lon, it.lat]).addTo(map);
+  limpaParques();
+  calcRota(true);
+}
+
+// toque longo no mapa: escolhe o ponto como destino (só parado)
+map.on('contextmenu', e => {
+  if (curV > 10) { avisa('Pára o carro para escolher o destino'); return; }
+  defineDestino({ nome: 'Ponto escolhido no mapa', lat: e.lngLat.lat, lon: e.lngLat.lng, exato: true, aviso: false });
+});
+
+async function calcRota(ajusta) {
+  if (!dest || routeBusy) return;
+  rbEl.hidden = false;
+  if (!navigator.onLine) { if (!route) rbt.textContent = 'Sem rede: não dá para calcular a rota'; return; }
+  routeBusy = true;
+  if (!route) rbt.textContent = 'A calcular rota…';
+  const de = last ? [last.coords.latitude, last.coords.longitude] : [map.getCenter().lat, map.getCenter().lng];
+  try {
+    const j = await pedido('https://api.tomtom.com/routing/1/calculateRoute/' + de[0].toFixed(5) + ',' + de[1].toFixed(5) + ':' +
+      dest.lat.toFixed(5) + ',' + dest.lon.toFixed(5) + '/json?key=' + KEY_TT +
+      '&traffic=true&travelMode=car&routeType=fastest&computeTravelTimeFor=all&routeRepresentation=polyline');
+    const rt = j.routes && j.routes[0];
+    if (!rt) throw new Error('sem rota');
+    const pts = [];
+    rt.legs.forEach(l => l.points.forEach(p => pts.push([p.longitude, p.latitude])));
+    if (pts.length < 2) throw new Error('rota vazia');
+    const cum = [0];
+    for (let i = 1; i < pts.length; i++) cum.push(cum[i - 1] + geoDist(pts[i - 1], pts[i]));
+    const sm = rt.summary || {};
+    route = { pts, cum, total: cum[cum.length - 1], tempo: sm.travelTimeInSeconds || 0, atraso: sm.trafficDelayInSeconds || 0 };
+    routeT = Date.now(); offCnt = 0; progT = 0;
+    map.getSource('rota').setData({ type: 'Feature', properties: {}, geometry: { type: 'LineString', coordinates: pts } });
+    if (ajusta) {
+      const b = new maplibregl.LngLatBounds(pts[0], pts[0]);
+      pts.forEach(p => b.extend(p));
+      follow = false; autoFit = true; rec.hidden = false;
+      map.fitBounds(b, { padding: { top: 90, bottom: 260, left: 40, right: 40 }, duration: 800, maxZoom: 16 });
+      setTimeout(() => { if (route && autoFit) { autoFit = false; follow = true; rec.hidden = true; if (last) apply(last); } }, 6000);
+    }
+    mostraRota(route.total);
+  } catch (e) {
+    if (!route) rbt.textContent = 'Rota falhou (' + (e.name === 'AbortError' ? 'tempo esgotado' : e.message) + ')';
+    else avisa('Não consegui atualizar a rota (' + (e.name === 'AbortError' ? 'tempo esgotado' : e.message) + ')');
+  }
+  routeBusy = false;
+}
+
+// mostra tempo, distância e hora de chegada; "rest" = metros que faltam
+function mostraRota(rest) {
+  if (!route) return;
+  const seg = route.total > 0 ? route.tempo * rest / route.total : 0;
+  rbt.textContent = fmtHora(Date.now() + seg * 1000) + ' · ' + fmtMin(seg) + ' · ' + fmtKm(rest);
+  const n = [];
+  if (route.atraso >= 120) n.push('+' + fmtMin(route.atraso) + ' por trânsito');
+  if (dest && dest.aviso) n.push('⚠ número não encontrado, destino na rua');
+  rbn.hidden = !n.length; rbn.textContent = n.join(' · ');
+}
+
+function segDist(p, a, b) {
+  const kx = Math.cos(p[1] * RAD) * 111320, ky = 110540;
+  const px = (p[0] - a[0]) * kx, py = (p[1] - a[1]) * ky, bx = (b[0] - a[0]) * kx, by = (b[1] - a[1]) * ky;
+  const L = bx * bx + by * by;
+  let t = L ? (px * bx + py * by) / L : 0;
+  t = Math.max(0, Math.min(1, t));
+  return { d: Math.hypot(px - t * bx, py - t * by), t };
+}
+
+// a cada posição (no máximo 1 vez por segundo): progresso, fora de rota, chegada
+function routeTick(pos, acc) {
+  if (!route || Date.now() - progT < 1000) return;
+  progT = Date.now();
+  let best = Infinity, bi = 0, bt = 0;
+  for (let i = 0; i < route.pts.length - 1; i++) {
+    const r = segDist(pos, route.pts[i], route.pts[i + 1]);
+    if (r.d < best) { best = r.d; bi = i; bt = r.t; }
+  }
+  const rest = Math.max(0, route.total - (route.cum[bi] + bt * (route.cum[bi + 1] - route.cum[bi])));
+  if (rest < 40 && geoDist(pos, [dest.lon, dest.lat]) < 60) {
+    rbt.textContent = 'Chegaste ao destino'; rbn.hidden = true;
+    return;
+  }
+  mostraRota(rest);
+  const lim = Math.max(60, (acc || 0) * 1.5);
+  offCnt = best > lim ? offCnt + 1 : 0;
+  if (offCnt >= 3 && Date.now() - routeT > 15000) { offCnt = 0; calcRota(false); return; }
+  if (Date.now() - routeT > 5 * 60 * 1000 && navigator.onLine) calcRota(false); // atualiza o trânsito de 5 em 5 min
+}
+
+function limpaParques() {
+  rbp.hidden = true; rbp.textContent = '';
+  if (ready && map.getSource('pperto')) map.getSource('pperto').setData({ type: 'FeatureCollection', features: [] });
+}
+
+// parques (P) mais perto do destino, entre os que o mapa tem carregados
+function parquesPerto() {
+  if (!dest) return;
+  follow = false; autoFit = false; rec.hidden = false;
+  map.jumpTo({ center: [dest.lon, dest.lat], zoom: 16, bearing: 0, padding: { top: 0, bottom: 120, left: 0, right: 0 } });
+  rbp.hidden = false; rbp.textContent = 'P perto do destino: a procurar…';
+  map.once('idle', () => {
+    const d0 = [dest.lon, dest.lat], vistos = new Set(), lista = [];
+    try {
+      map.querySourceFeatures('openmaptiles', { sourceLayer: 'poi', filter: ['==', ['get', 'class'], 'parking'] }).forEach(f => {
+        if (f.geometry.type !== 'Point') return;
+        const c = f.geometry.coordinates, k = c[0].toFixed(5) + ',' + c[1].toFixed(5);
+        if (vistos.has(k)) return;
+        vistos.add(k);
+        const d = geoDist(d0, c);
+        if (d < 700) lista.push({ c, d });
+      });
+    } catch (e) {}
+    lista.sort((a, b) => a.d - b.d);
+    const top = lista.slice(0, 3), feats = [];
+    top.forEach(x => {
+      feats.push({ type: 'Feature', properties: {}, geometry: { type: 'LineString', coordinates: [d0, x.c] } });
+      feats.push({ type: 'Feature', properties: { txt: fmtKm(x.d) }, geometry: { type: 'Point', coordinates: x.c } });
+    });
+    map.getSource('pperto').setData({ type: 'FeatureCollection', features: feats });
+    rbp.textContent = top.length ? 'P perto do destino: ' + top.map(x => fmtKm(x.d)).join(' · ') + ' (em linha reta)'
+                                 : 'Sem parques nos mapas carregados a menos de 700 m do destino';
+  });
+}
+
+document.getElementById('rbP').addEventListener('click', parquesPerto);
+document.getElementById('rbX').addEventListener('click', () => {
+  route = null; dest = null; autoFit = false;
+  if (destMark) { destMark.remove(); destMark = null; }
+  if (ready) map.getSource('rota').setData({ type: 'FeatureCollection', features: [] });
+  limpaParques();
+  rbEl.hidden = true;
+  follow = true; rec.hidden = true; if (last) apply(last);
+});
+// ---- fim do destino e rota ----
 
 // incidentes de trânsito (TomTom): acidentes, obras, estradas cortadas
 const INC_NOME = { 0: 'Incidente', 1: 'Acidente', 2: 'Nevoeiro', 3: 'Condições perigosas', 4: 'Chuva forte', 5: 'Gelo',
