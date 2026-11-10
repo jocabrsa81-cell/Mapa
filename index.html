@@ -492,9 +492,13 @@ function apply(p) {
 
   if (follow && ready) {
     const h = window.innerHeight;
+    // com a barra da rota visível, sobe a seta para não ficar escondida atrás dela
+    let bot = 0;
+    if (!rbEl.hidden) bot = Math.max(0, h - rbEl.getBoundingClientRect().top + 12);
+    bot = Math.min(bot, Math.round(h * 0.7) - Math.round(h * 0.4));
     map.easeTo({
       center: pos, bearing: northUp ? 0 : bearing, zoom: numsOn ? 17.3 : 15.5,
-      padding: { top: Math.round(h * 0.4), bottom: 0, left: 0, right: 0 },
+      padding: { top: Math.round(h * 0.4), bottom: bot, left: 0, right: 0 },
       duration: 900, essential: true
     });
   }
