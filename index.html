@@ -121,6 +121,13 @@
     background: #0b57d0; color: #fff; border-radius: 14px; padding: 8px 14px; box-shadow: 0 2px 10px rgba(0,0,0,.4);
     display: flex; align-items: center; gap: 14px;
   }
+  #tfb {
+    position: fixed; right: 0; width: 10px; z-index: 3; pointer-events: none; overflow: hidden;
+    top: calc(300px + env(safe-area-inset-top, 0px)); bottom: calc(250px + env(safe-area-inset-bottom, 0px));
+    background: #2fb344; border-radius: 5px 0 0 5px; box-shadow: 0 0 0 2px rgba(255,255,255,.9);
+  }
+  #tfb i { position: absolute; left: 0; right: 0; min-height: 5px; display: block; }
+  body.nav #tfb { top: calc(330px + env(safe-area-inset-top, 0px)); }
   #tba { font-size: 38px; line-height: 1; }
   #tbd { font-size: 26px; font-weight: 800; line-height: 1.1; }
   #tbs { font-size: 14px; opacity: .92; }
@@ -151,6 +158,7 @@
 <button id="go">Destino</button>
 <button id="nb">Rumo</button>
 <button id="vz">🔊 Voz</button>
+<div id="tfb" hidden></div>
 <div id="tb" hidden><div id="tba"></div><div><div id="tbd"></div><div id="tbs"></div></div></div>
 <div id="cx" hidden></div>
 <div id="pk" hidden>
@@ -929,7 +937,7 @@ async function calcRota(ajusta, refaz) {
   try {
     const j = await pedido('https://api.tomtom.com/routing/1/calculateRoute/' + de[0].toFixed(5) + ',' + de[1].toFixed(5) + ':' +
       dest.lat.toFixed(5) + ',' + dest.lon.toFixed(5) + '/json?key=' + KEY_TT +
-      '&traffic=true&travelMode=car&routeType=fastest&computeTravelTimeFor=all&routeRepresentation=polyline&instructionsType=text');
+      '&traffic=true&travelMode=car&routeType=fastest&computeTravelTimeFor=all&routeRepresentation=polyline&instructionsType=text&sectionType=traffic');
     const rt = j.routes && j.routes[0];
     if (!rt) throw new Error('sem rota');
     const pts = [];
@@ -946,7 +954,21 @@ async function calcRota(ajusta, refaz) {
       if (pi == null || pi < 0 || pi >= cum.length) return;
       ins.push({ at: cum[pi], man: m, street: x.street || '', roads: x.roadNumbers || [], ex: x.exitNumber || '', rex: x.roundaboutExitNumber || 0, st: 0 });
     });
-    route = { pts, cum, total: cum[cum.length - 1], tempo: sm.travelTimeInSeconds || 0, atraso: sm.trafficDelayInSeconds || 0, ins, gi: 0 };
+    const tr = [];
+    (rt.sections || []).forEach(x => {
+      if (x.sectionType && String(x.sectionType).toUpperCase() !== 'TRAFFIC') return;
+      const a = x.startPointIndex, b = x.endPointIndex;
+      if (a == null || b == null || a < 0 || b >= cum.length || b <= a) return;
+      const cat = String(x.simpleCategory || 'JAM').toUpperCase(), mag = x.magnitudeOfDelay, v = x.effectiveSpeedInKmh;
+      let cor;
+      if (cat === 'ROAD_CLOSURE') cor = '#5b0014';
+      else if (cat === 'ROAD_WORK') cor = '#f08c00';
+      else if (mag >= 3 || (v != null && v < 15)) cor = '#d62828';
+      else if (mag === 2 || (v != null && v < 35)) cor = '#f08c00';
+      else cor = '#f2c200';
+      tr.push({ a: cum[a], b: cum[b], cor, cat, delay: x.delayInSeconds || 0, v });
+    });
+    route = { pts, cum, total: cum[cum.length - 1], tempo: sm.travelTimeInSeconds || 0, atraso: sm.trafficDelayInSeconds || 0, ins, gi: 0, tr, nextTr: null };
     routeT = Date.now(); offCnt = 0; progT = 0;
     map.getSource('rota').setData({ type: 'Feature', properties: {}, geometry: { type: 'LineString', coordinates: pts } });
     if (ajusta) {
@@ -973,6 +995,7 @@ function mostraRota(rest) {
   const n = [];
   if (dest && dest.nome) n.push(dest.nome.slice(0, 70));
   if (route.atraso >= 120) n.push('+' + fmtMin(route.atraso) + ' por trânsito');
+  if (route.nextTr) n.push(route.nextTr);
   if (dest && dest.aviso) n.push('⚠ número não encontrado, destino na rua');
   rbn.hidden = !n.length; rbn.textContent = n.join(' · ');
 }
@@ -998,6 +1021,7 @@ function routeTick(pos, acc) {
   const trav = route.cum[bi] + bt * (route.cum[bi + 1] - route.cum[bi]);
   const rest = Math.max(0, route.total - trav);
   guiaTick(trav);
+  barraTick(trav);
   if (rest < 40 && geoDist(pos, [dest.lon, dest.lat]) < 60) {
     rbt.textContent = 'Chegaste ao destino'; rbn.hidden = true;
     return;
@@ -1051,7 +1075,7 @@ document.getElementById('rbX').addEventListener('click', () => {
   route = null; dest = null; autoFit = false;
   if (destMark) { destMark.remove(); destMark = null; }
   if (ready) map.getSource('rota').setData({ type: 'FeatureCollection', features: [] });
-  limpaParques(); guiaLimpa(); try { speechSynthesis.cancel(); } catch (e) {}
+  limpaParques(); guiaLimpa(); barraLimpa(); try { speechSynthesis.cancel(); } catch (e) {}
   rbEl.hidden = true;
   follow = true; rec.hidden = true; if (last) apply(last);
 });
@@ -1174,6 +1198,34 @@ function guiaLimpa() {
   tb.hidden = true; document.body.classList.remove('nav');
 }
 // ---- fim das instruções e voz ----
+
+// ---- barra lateral do trânsito no trajeto ----
+// Do fundo (onde estás) ao topo (destino): verde = livre; amarelo/laranja/vermelho = trânsito; castanho = estrada cortada.
+const tfb = document.getElementById('tfb');
+const NOMES_TR = { JAM: 'Trânsito', ROAD_WORK: 'Obras', ROAD_CLOSURE: 'Estrada cortada', OTHER: 'Incidente' };
+function barraTick(trav) {
+  const rem = route.total - trav;
+  if (!route.tr || rem <= 0) { barraLimpa(); return; }
+  tfb.hidden = false;
+  tfb.textContent = '';
+  let prox = null;
+  route.tr.forEach(t => {
+    const a = Math.max(t.a, trav), b = t.b;
+    if (b <= a) return;
+    const i = document.createElement('i');
+    i.style.background = t.cor;
+    i.style.bottom = ((a - trav) / rem * 100) + '%';
+    i.style.height = Math.max(0.4, (b - a) / rem * 100) + '%';
+    tfb.appendChild(i);
+    if (!prox || a < prox.a) prox = { a, t };
+  });
+  if (prox && prox.a - trav < 40000) {
+    const d = Math.max(0, prox.a - trav);
+    route.nextTr = NOMES_TR[prox.t.cat] + ' à frente: ' + distTxt(d) + (prox.t.delay >= 60 ? ' (+' + fmtMin(prox.t.delay) + ')' : '');
+  } else route.nextTr = null;
+}
+function barraLimpa() { tfb.hidden = true; tfb.textContent = ''; }
+// ---- fim da barra do trânsito ----
 // ---- fim do destino e rota ----
 
 // incidentes de trânsito (TomTom): acidentes, obras, estradas cortadas
