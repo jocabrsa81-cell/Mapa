@@ -116,6 +116,26 @@
   }
   #pk button { background: #1a7f37; color: #fff; border: 0; border-radius: 10px; padding: 10px 14px; margin: 8px 8px 0 0; font-size: 15px; font-weight: 700; }
   #pk button.x { background: #3a4048; }
+  #tb {
+    position: fixed; left: 12px; right: 12px; top: calc(54px + env(safe-area-inset-top, 0px)); z-index: 5;
+    background: #0b57d0; color: #fff; border-radius: 14px; padding: 8px 14px; box-shadow: 0 2px 10px rgba(0,0,0,.4);
+    display: flex; align-items: center; gap: 14px;
+  }
+  #tba { font-size: 38px; line-height: 1; }
+  #tbd { font-size: 26px; font-weight: 800; line-height: 1.1; }
+  #tbs { font-size: 14px; opacity: .92; }
+  #vz {
+    position: fixed; left: 10px; top: calc(250px + env(safe-area-inset-top, 0px));
+    background: #1a7f37; color: #fff; border: 0; border-radius: 12px; padding: 10px 12px;
+    font-size: 14px; font-weight: 700; box-shadow: 0 2px 10px rgba(0,0,0,.35);
+  }
+  #vz.off { background: #14181c; }
+  /* com a faixa de instruções no topo, os botões descem */
+  body.nav #wx, body.nav #sv { top: calc(132px + env(safe-area-inset-top, 0px)); }
+  body.nav #go, body.nav #tr { top: calc(182px + env(safe-area-inset-top, 0px)); }
+  body.nav #nb, body.nav #pn { top: calc(232px + env(safe-area-inset-top, 0px)); }
+  body.nav #vz { top: calc(282px + env(safe-area-inset-top, 0px)); }
+  body.nav #info { top: calc(124px + env(safe-area-inset-top, 0px)); }
   .dst { font-size: 30px; line-height: 1; filter: drop-shadow(0 1px 2px rgba(0,0,0,.6)); }
 </style>
 </head>
@@ -130,6 +150,8 @@
 <button id="tr">Trânsito</button>
 <button id="go">Destino</button>
 <button id="nb">Rumo</button>
+<button id="vz">🔊 Voz</button>
+<div id="tb" hidden><div id="tba"></div><div><div id="tbd"></div><div id="tbs"></div></div></div>
 <div id="cx" hidden></div>
 <div id="pk" hidden>
   <div><b>Move o mapa até a cruz ficar no destino</b></div>
@@ -164,7 +186,7 @@ const rec = document.getElementById('rec');
 let northUp = false;
 try { northUp = localStorage.getItem('nu') === '1'; } catch (e) {}
 let follow = true, numsOn = false, bearing = 0, last = null, ready = false;
-var busy = false, lastFail = 0, lastFetch = null;
+var busy = false, lastFail = 0, lastFetch = null, fuelOut = false;
 
 // trânsito em tempo real (TomTom): precisa de rede e não é guardado no telemóvel
 const KEY_TT = 'vKk6oa9UQ0WvDI9KYPST3Qq0VAdXguvI';
@@ -324,36 +346,6 @@ map.on('load', () => {
 
 const info = document.getElementById('info');
 
-let lastErr = '';
-const MIRRORS = [
-  'https://overpass-api.de/api/interpreter',
-  'https://overpass.private.coffee/api/interpreter',
-  'https://overpass.kumi.systems/api/interpreter'
-];
-async function overpass(q) {
-  const ctls = [], errs = [];
-  const tries = MIRRORS.map(async u => {
-    const ctl = new AbortController(); ctls.push(ctl);
-    const t = setTimeout(() => ctl.abort(), 20000);
-    try {
-      const r = await fetch(u + '?data=' + encodeURIComponent(q), { signal: ctl.signal });
-      if (!r.ok) throw new Error('HTTP ' + r.status);
-      return await r.json();
-    } catch (e) {
-      errs.push(e.name === 'AbortError' ? 'tempo esgotado' : (e instanceof TypeError ? 'bloqueado/rede' : e.message));
-      throw e;
-    } finally { clearTimeout(t); }
-  });
-  try {
-    const j = await Promise.any(tries);
-    ctls.forEach(c => c.abort()); // o primeiro a responder ganha
-    return j;
-  } catch (e) {
-    lastErr = [...new Set(errs)].join(', ');
-    return null;
-  }
-}
-
 // protege contra erros: nunca deixa a etiqueta presa em "a carregar…"
 async function loadPark() {
   const wasBusy = busy;
@@ -422,49 +414,41 @@ async function getLocal() {
 }
 
 async function loadParkInner() {
+  // bombas: áreas a vermelho só onde o dados.json/export.json cobre a zona; fora disso, pontos vermelhos do mapa base.
+  // Sem pedidos à rede e sem mensagens de erro.
   if (!ready || busy || map.getZoom() < 15) return;
-  if (Date.now() - lastFail < 20000) return;
   const c = map.getCenter();
   if (lastFetch && lastFetch.distanceTo(c) < 300) return;
   busy = true;
-  info.hidden = false; info.textContent = 'Bombas: a carregar…';
-  const s = c.lat - 0.005, n = c.lat + 0.005, w = c.lng - 0.007, e = c.lng + 0.007;
-  const b = '(' + s + ',' + w + ',' + n + ',' + e + ')';
-  const q = '[out:json][timeout:25];(' +
-    'node["amenity"="fuel"]' + b + ';' +
-    'way["amenity"="fuel"]' + b + ';' +
-    ');out tags geom;';
   const L = await getLocal();
   const inside = !!L && c.lat >= L.ext[0] && c.lat <= L.ext[2] && c.lng >= L.ext[1] && c.lng <= L.ext[3];
-  const d = inside ? L : await overpass(q);
-  if (d && d.remark) lastErr = 'serviço: ' + String(d.remark).slice(0, 40);
-  if (!d || !Array.isArray(d.elements) || (d.remark && !d.elements.length)) {
-    lastFail = Date.now();
-    info.hidden = false;
-    info.textContent = navigator.onLine ? 'Bombas: falhou (' + lastErr + ')'
-                                        : 'Sem dados guardados nesta zona';
-    map.setLayerZoomRange('poi-fuel-far', 12, 24); // bombas do mapa base voltam a aparecer de perto
+  if (!inside) {
+    if (!fuelOut) {
+      fuelOut = true;
+      map.getSource('fuel').setData({ type: 'FeatureCollection', features: [] });
+      setFuelPts([]);
+      map.setLayerZoomRange('poi-fuel-far', 12, 24); // bombas do mapa base visíveis também de perto
+    }
   } else {
+    fuelOut = false;
     const fuelFeats = [];
-    d.elements.forEach(el => {
-      if (el.tags && el.tags.amenity === 'fuel') {
-        if (el.type === 'node') {
-          fuelFeats.push({ type: 'Feature', properties: { name: el.tags.name || el.tags.brand || '' }, geometry: { type: 'Point', coordinates: [el.lon, el.lat] } });
-        } else if (el.geometry && el.geometry.length > 3) {
-          const ring = el.geometry.map(g => [g.lon, g.lat]);
-          const f = ring[0], l = ring[ring.length - 1];
-          if (f[0] === l[0] && f[1] === l[1]) {
-            fuelFeats.push({ type: 'Feature', properties: { name: el.tags.name || el.tags.brand || '' }, geometry: { type: 'Polygon', coordinates: [ring] } });
-          }
+    L.elements.forEach(el => {
+      if (!el.tags || el.tags.amenity !== 'fuel') return;
+      const nome = el.tags.name || el.tags.brand || '';
+      if (el.type === 'node') {
+        fuelFeats.push({ type: 'Feature', properties: { name: nome }, geometry: { type: 'Point', coordinates: [el.lon, el.lat] } });
+      } else if (el.geometry && el.geometry.length > 3) {
+        const ring = el.geometry.map(g => [g.lon, g.lat]);
+        const f = ring[0], l = ring[ring.length - 1];
+        if (f[0] === l[0] && f[1] === l[1]) {
+          fuelFeats.push({ type: 'Feature', properties: { name: nome }, geometry: { type: 'Polygon', coordinates: [ring] } });
         }
-        return;
       }
     });
     map.getSource('fuel').setData({ type: 'FeatureCollection', features: fuelFeats });
     setFuelPts(fuelFeats);
-    map.setLayerZoomRange('poi-fuel-far', 12, 15); // dados bons chegaram: o ponto simples só com zoom afastado
+    map.setLayerZoomRange('poi-fuel-far', 12, 15);
     lastFetch = c;
-    info.hidden = true; // tudo bem: esconde a linha de informação
   }
   busy = false;
 }
@@ -935,7 +919,7 @@ nb.addEventListener('click', () => {
 });
 nbEstado();
 
-async function calcRota(ajusta) {
+async function calcRota(ajusta, refaz) {
   if (!dest || routeBusy) return;
   rbEl.hidden = false;
   if (!navigator.onLine) { if (!route) rbt.textContent = 'Sem rede: não dá para calcular a rota'; return; }
@@ -945,7 +929,7 @@ async function calcRota(ajusta) {
   try {
     const j = await pedido('https://api.tomtom.com/routing/1/calculateRoute/' + de[0].toFixed(5) + ',' + de[1].toFixed(5) + ':' +
       dest.lat.toFixed(5) + ',' + dest.lon.toFixed(5) + '/json?key=' + KEY_TT +
-      '&traffic=true&travelMode=car&routeType=fastest&computeTravelTimeFor=all&routeRepresentation=polyline');
+      '&traffic=true&travelMode=car&routeType=fastest&computeTravelTimeFor=all&routeRepresentation=polyline&instructionsType=text');
     const rt = j.routes && j.routes[0];
     if (!rt) throw new Error('sem rota');
     const pts = [];
@@ -954,7 +938,15 @@ async function calcRota(ajusta) {
     const cum = [0];
     for (let i = 1; i < pts.length; i++) cum.push(cum[i - 1] + geoDist(pts[i - 1], pts[i]));
     const sm = rt.summary || {};
-    route = { pts, cum, total: cum[cum.length - 1], tempo: sm.travelTimeInSeconds || 0, atraso: sm.trafficDelayInSeconds || 0 };
+    const ins = [];
+    ((rt.guidance && rt.guidance.instructions) || []).forEach(x => {
+      const m = x.maneuver;
+      if (!m || m === 'DEPART' || m === 'STRAIGHT' || m === 'FOLLOW') return; // "siga em frente" não interessa
+      const pi = x.pointIndex;
+      if (pi == null || pi < 0 || pi >= cum.length) return;
+      ins.push({ at: cum[pi], man: m, street: x.street || '', roads: x.roadNumbers || [], ex: x.exitNumber || '', rex: x.roundaboutExitNumber || 0, st: 0 });
+    });
+    route = { pts, cum, total: cum[cum.length - 1], tempo: sm.travelTimeInSeconds || 0, atraso: sm.trafficDelayInSeconds || 0, ins, gi: 0 };
     routeT = Date.now(); offCnt = 0; progT = 0;
     map.getSource('rota').setData({ type: 'Feature', properties: {}, geometry: { type: 'LineString', coordinates: pts } });
     if (ajusta) {
@@ -965,6 +957,7 @@ async function calcRota(ajusta) {
       setTimeout(() => { if (route && autoFit) { autoFit = false; follow = true; rec.hidden = true; if (last) apply(last); } }, 6000);
     }
     mostraRota(route.total);
+    if (!refaz) fala('Rota calculada. ' + falaTempo(route.tempo) + ', ' + falaDist(route.total) + '.');
   } catch (e) {
     if (!route) rbt.textContent = 'Rota falhou (' + (e.name === 'AbortError' ? 'tempo esgotado' : e.message) + ')';
     else avisa('Não consegui atualizar a rota (' + (e.name === 'AbortError' ? 'tempo esgotado' : e.message) + ')');
@@ -1002,7 +995,9 @@ function routeTick(pos, acc) {
     const r = segDist(pos, route.pts[i], route.pts[i + 1]);
     if (r.d < best) { best = r.d; bi = i; bt = r.t; }
   }
-  const rest = Math.max(0, route.total - (route.cum[bi] + bt * (route.cum[bi + 1] - route.cum[bi])));
+  const trav = route.cum[bi] + bt * (route.cum[bi + 1] - route.cum[bi]);
+  const rest = Math.max(0, route.total - trav);
+  guiaTick(trav);
   if (rest < 40 && geoDist(pos, [dest.lon, dest.lat]) < 60) {
     rbt.textContent = 'Chegaste ao destino'; rbn.hidden = true;
     return;
@@ -1010,8 +1005,8 @@ function routeTick(pos, acc) {
   mostraRota(rest);
   const lim = Math.max(60, (acc || 0) * 1.5);
   offCnt = best > lim ? offCnt + 1 : 0;
-  if (offCnt >= 3 && Date.now() - routeT > 15000) { offCnt = 0; calcRota(false); return; }
-  if (Date.now() - routeT > 5 * 60 * 1000 && navigator.onLine) calcRota(false); // atualiza o trânsito de 5 em 5 min
+  if (offCnt >= 3 && Date.now() - routeT > 15000) { offCnt = 0; fala('A recalcular a rota.'); calcRota(false, true); return; }
+  if (Date.now() - routeT > 5 * 60 * 1000 && navigator.onLine) calcRota(false, true); // atualiza o trânsito de 5 em 5 min
 }
 
 function limpaParques() {
@@ -1056,10 +1051,129 @@ document.getElementById('rbX').addEventListener('click', () => {
   route = null; dest = null; autoFit = false;
   if (destMark) { destMark.remove(); destMark = null; }
   if (ready) map.getSource('rota').setData({ type: 'FeatureCollection', features: [] });
-  limpaParques();
+  limpaParques(); guiaLimpa(); try { speechSynthesis.cancel(); } catch (e) {}
   rbEl.hidden = true;
   follow = true; rec.hidden = true; if (last) apply(last);
 });
+
+// ---- instruções curva a curva e voz ----
+// As frases são construídas aqui (português de Portugal) a partir do tipo de manobra da TomTom.
+const FALA_RUA = false; // true: diz também o nome da rua (a voz portuguesa lê mal nomes franceses)
+const tb = document.getElementById('tb'), tba = document.getElementById('tba'), tbd = document.getElementById('tbd'), tbs = document.getElementById('tbs');
+const vzBtn = document.getElementById('vz');
+let vozOn = true;
+try { vozOn = localStorage.getItem('vz') !== '0'; } catch (e) {}
+function vzEstado() { vzBtn.textContent = vozOn ? '🔊 Voz' : '🔇 Mudo'; vzBtn.classList.toggle('off', !vozOn); }
+vzEstado();
+
+const ORD = ['', 'primeira', 'segunda', 'terceira', 'quarta', 'quinta', 'sexta', 'sétima', 'oitava', 'nona'];
+function escolheVoz() {
+  try {
+    const vs = speechSynthesis.getVoices();
+    return vs.find(v => /^pt[-_]PT/i.test(v.lang)) || vs.find(v => /^pt/i.test(v.lang)) || null;
+  } catch (e) { return null; }
+}
+function fala(t) {
+  if (!vozOn || !t || !('speechSynthesis' in window)) return;
+  try {
+    speechSynthesis.cancel(); // a instrução mais recente passa à frente de uma fala atrasada
+    const u = new SpeechSynthesisUtterance(t);
+    u.lang = 'pt-PT'; u.rate = 1;
+    const v = escolheVoz(); if (v) u.voice = v;
+    speechSynthesis.speak(u);
+  } catch (e) {}
+}
+vzBtn.addEventListener('click', () => {
+  vozOn = !vozOn;
+  try { localStorage.setItem('vz', vozOn ? '1' : '0'); } catch (e) {}
+  vzEstado();
+  if (vozOn) {
+    fala('Voz ativada.');
+    setTimeout(() => { if (!escolheVoz()) avisa('Sem voz portuguesa. Instala-a em Definições > Gestão geral > Texto para voz'); }, 1500);
+  } else { try { speechSynthesis.cancel(); } catch (e) {} }
+});
+
+function falaTempo(sg) {
+  const m = Math.max(1, Math.round(sg / 60)), h = Math.floor(m / 60), r = m % 60;
+  if (!h) return m + (m === 1 ? ' minuto' : ' minutos');
+  return h + (h === 1 ? ' hora' : ' horas') + (r ? ' e ' + r + (r === 1 ? ' minuto' : ' minutos') : '');
+}
+function falaDist(m) {
+  if (m < 950) { const r = m < 500 ? 50 : 100; return Math.max(r, Math.round(m / r) * r) + ' metros'; }
+  const k = Math.round(m / 100) / 10;
+  return (k === 1 ? '1 quilómetro' : String(k).replace('.', ',') + ' quilómetros');
+}
+
+function frase(it) {
+  const m = it.man, via = it.roads[0] ? ' ' + it.roads[0].replace(/\s+/g, ' ') : '';
+  const rua = (FALA_RUA && it.street) ? ' para ' + it.street : '';
+  const saida = it.ex ? ' número ' + it.ex : '';
+  const rot = it.rex ? (ORD[it.rex] ? 'na rotunda, saia na ' + ORD[it.rex] + ' saída' : 'na rotunda, saia na saída número ' + it.rex) : '';
+  switch (m) {
+    case 'TURN_LEFT': return 'vire à esquerda' + rua;
+    case 'TURN_RIGHT': return 'vire à direita' + rua;
+    case 'SHARP_LEFT': return 'vire acentuadamente à esquerda' + rua;
+    case 'SHARP_RIGHT': return 'vire acentuadamente à direita' + rua;
+    case 'BEAR_LEFT': return 'siga ligeiramente à esquerda' + rua;
+    case 'BEAR_RIGHT': return 'siga ligeiramente à direita' + rua;
+    case 'KEEP_LEFT': return 'mantenha-se à esquerda' + rua;
+    case 'KEEP_RIGHT': return 'mantenha-se à direita' + rua;
+    case 'MAKE_UTURN': case 'TRY_MAKE_UTURN': return 'faça inversão de marcha';
+    case 'ENTER_MOTORWAY': case 'ENTER_FREEWAY': case 'ENTER_HIGHWAY': return 'entre na autoestrada' + via;
+    case 'MOTORWAY_EXIT_LEFT': return 'saia à esquerda' + (saida ? ', saída' + saida : '');
+    case 'MOTORWAY_EXIT_RIGHT': return 'saia à direita' + (saida ? ', saída' + saida : '');
+    case 'TAKE_EXIT': return 'saia' + (saida ? ', saída' + saida : '');
+    case 'ENTRANCE_RAMP': return 'entre na rampa' + via;
+    case 'ROUNDABOUT_CROSS': return rot || 'na rotunda, siga em frente';
+    case 'ROUNDABOUT_LEFT': case 'ROUNDABOUT_RIGHT': return rot || 'na rotunda, saia à ' + (m === 'ROUNDABOUT_LEFT' ? 'esquerda' : 'direita');
+    case 'ROUNDABOUT_BACK': return 'na rotunda, volte para trás';
+    case 'SWITCH_MAIN_ROAD': return 'mude para a estrada principal';
+    case 'SWITCH_PARALLEL_ROAD': return 'mude para a estrada paralela';
+    case 'TAKE_FERRY': return 'apanhe o ferry';
+    case 'ARRIVE_LEFT': return 'chegou ao destino, fica à esquerda';
+    case 'ARRIVE_RIGHT': return 'chegou ao destino, fica à direita';
+    case 'ARRIVE': return 'chegou ao destino';
+    default: return 'siga as indicações';
+  }
+}
+const SETA = { TURN_LEFT: '⬅️', TURN_RIGHT: '➡️', SHARP_LEFT: '↙️', SHARP_RIGHT: '↘️', BEAR_LEFT: '↖️', BEAR_RIGHT: '↗️',
+  KEEP_LEFT: '↖️', KEEP_RIGHT: '↗️', MAKE_UTURN: '↩️', TRY_MAKE_UTURN: '↩️', ENTER_MOTORWAY: '🛣️', ENTER_FREEWAY: '🛣️', ENTER_HIGHWAY: '🛣️',
+  MOTORWAY_EXIT_LEFT: '↖️', MOTORWAY_EXIT_RIGHT: '↗️', TAKE_EXIT: '↗️', ROUNDABOUT_CROSS: '🔄', ROUNDABOUT_LEFT: '🔄', ROUNDABOUT_RIGHT: '🔄',
+  ROUNDABOUT_BACK: '🔄', ARRIVE: '🏁', ARRIVE_LEFT: '🏁', ARRIVE_RIGHT: '🏁' };
+function rotulo(it) {
+  const p = [];
+  if (it.rex) p.push(it.rex + 'ª saída');
+  if (it.ex && !it.rex) p.push('saída ' + it.ex);
+  const nome = it.street || (it.roads && it.roads[0]) || '';
+  if (nome) p.push(nome);
+  return p.join(' · ');
+}
+function distTxt(m) { return m < 1000 ? (m < 200 ? Math.round(m / 10) * 10 : Math.round(m / 50) * 50) + ' m' : (m / 1000).toFixed(1).replace('.', ',') + ' km'; }
+
+// a cada posição: passa à instrução seguinte, atualiza a faixa e avisa por voz
+function guiaTick(trav) {
+  if (!route || !route.ins || !route.ins.length) { guiaLimpa(); return; }
+  const I = route.ins;
+  while (route.gi < I.length - 1 && trav > I[route.gi].at + 25 && !I[route.gi].man.startsWith('ARRIVE')) route.gi++;
+  const it = I[route.gi];
+  if (!it || (trav > it.at + 25 && !it.man.startsWith('ARRIVE'))) { guiaLimpa(); return; }
+  const d = Math.max(0, it.at - trav);
+  tb.hidden = false; document.body.classList.add('nav');
+  tba.textContent = SETA[it.man] || '⬆️';
+  tbd.textContent = distTxt(d);
+  tbs.textContent = rotulo(it);
+  const v = curV / 3.6;                                  // m/s
+  const dFar = Math.min(1500, Math.max(250, v * 30));   // primeiro aviso, ~30 s antes
+  const dNear = Math.min(150, Math.max(40, v * 8));     // segundo aviso, ~8 s antes
+  if (it.st < 2 && d <= dNear) { fala(frase(it)); it.st = 2; }
+  else if (it.st < 1 && !it.man.startsWith('ARRIVE') && d <= dFar && d > dNear * 1.5 + 60) {
+    fala('Dentro de ' + falaDist(d) + ', ' + frase(it)); it.st = 1;
+  }
+}
+function guiaLimpa() {
+  tb.hidden = true; document.body.classList.remove('nav');
+}
+// ---- fim das instruções e voz ----
 // ---- fim do destino e rota ----
 
 // incidentes de trânsito (TomTom): acidentes, obras, estradas cortadas
