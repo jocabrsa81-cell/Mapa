@@ -145,7 +145,7 @@
     font-size: 14px; line-height: 19px; text-align: center; box-shadow: 0 1px 4px rgba(0,0,0,.45);
   }
   #pn { z-index: 6; }
-  body.nav #tfb { top: calc(330px + env(safe-area-inset-top, 0px)); }
+  body.nav #sv, body.nav #tr, body.nav #pn { right: 84px; }
   #tba { font-size: 38px; line-height: 1; }
   #tbd { font-size: 26px; font-weight: 800; line-height: 1.1; }
   #tbs { font-size: 14px; opacity: .92; }
@@ -1225,6 +1225,11 @@ let tfIcons = [];
 function barraTick(trav) {
   const rem = route.total - trav;
   if (!route.tr || rem <= 0) { barraLimpa(); return; }
+  // o ecrã do browser é baixo: mede o espaço entre a faixa de instruções e a barra da rota
+  const top = (tb.hidden ? 62 : tb.getBoundingClientRect().bottom) + 8;
+  const bot = rbEl.hidden ? 100 : Math.max(0, window.innerHeight - rbEl.getBoundingClientRect().top + 8);
+  if (window.innerHeight - top - bot < 110) { tfb.hidden = true; return; } // sem espaço para desenhar a barra
+  tfb.style.top = Math.round(top) + 'px'; tfb.style.bottom = Math.round(bot) + 'px';
   tfb.hidden = false;
   tlb.textContent = rem >= 10000 ? Math.round(rem / 1000) + ' km' : distTxt(rem);
   trk.textContent = '';
