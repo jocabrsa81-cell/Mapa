@@ -151,6 +151,7 @@
   #tba { font-size: 38px; line-height: 1; }
   #tbd { font-size: 26px; font-weight: 800; line-height: 1.1; }
   #tbs { font-size: 14px; opacity: .92; }
+  #tbn { font-size: 13px; font-weight: 700; margin-top: 3px; }
   #vz {
     position: fixed; left: 10px; top: calc(250px + env(safe-area-inset-top, 0px));
     background: #1a7f37; color: #fff; border: 0; border-radius: 12px; padding: 10px 12px;
@@ -179,7 +180,7 @@
 <button id="nb">Rumo</button>
 <button id="vz">🔊 Voz</button>
 <div id="tfb" hidden><div class="trk" id="trk"></div><div class="fl">🏁</div><div class="ar"></div><div class="lb" id="tlb"></div></div>
-<div id="tb" hidden><div id="tba"></div><div><div id="tbd"></div><div id="tbs"></div></div></div>
+<div id="tb" hidden><div id="tba"></div><div><div id="tbd"></div><div id="tbs"></div><div id="tbn" hidden></div></div></div>
 <div id="cx" hidden></div>
 <div id="pk" hidden>
   <div><b>Move o mapa até a cruz ficar no destino</b></div>
@@ -1106,7 +1107,7 @@ document.getElementById('rbX').addEventListener('click', () => {
 // ---- instruções curva a curva e voz ----
 // As frases são construídas aqui (português de Portugal) a partir do tipo de manobra da TomTom.
 const FALA_RUA = false; // true: diz também o nome da rua (a voz portuguesa lê mal nomes franceses)
-const tb = document.getElementById('tb'), tba = document.getElementById('tba'), tbd = document.getElementById('tbd'), tbs = document.getElementById('tbs');
+const tb = document.getElementById('tb'), tba = document.getElementById('tba'), tbd = document.getElementById('tbd'), tbs = document.getElementById('tbs'), tbn = document.getElementById('tbn');
 const vzBtn = document.getElementById('vz');
 let vozOn = true;
 try { vozOn = localStorage.getItem('vz') !== '0'; } catch (e) {}
@@ -1197,6 +1198,15 @@ function rotulo(it) {
 }
 function distTxt(m) { return m < 1000 ? (m < 200 ? Math.round(m / 10) * 10 : Math.round(m / 50) * 50) + ' m' : (m / 1000).toFixed(1).replace('.', ',') + ' km'; }
 
+// "e depois ...": se a manobra seguinte vem logo a seguir, a voz avisa já das duas
+function encadeia(i, v) {
+  const n = route.ins[i + 1];
+  if (!n || n.man.startsWith('ARRIVE')) return '';
+  const gap = n.at - route.ins[i].at, lim = Math.max(150, Math.min(400, v * 12));
+  if (gap > lim) return '';
+  return (gap < 120 ? ', e logo a seguir, ' : ', e depois, dentro de ' + falaDist(gap) + ', ') + frase(n);
+}
+
 // a cada posição: passa à instrução seguinte, atualiza a faixa e avisa por voz
 function guiaTick(trav) {
   if (!route || !route.ins || !route.ins.length) { guiaLimpa(); return; }
@@ -1209,12 +1219,15 @@ function guiaTick(trav) {
   tba.textContent = SETA[it.man] || '⬆️';
   tbd.textContent = distTxt(d);
   tbs.textContent = rotulo(it);
+  const nx = I[route.gi + 1];
+  if (nx && nx.at - it.at <= 500) { tbn.hidden = false; tbn.textContent = 'Depois: ' + (SETA[nx.man] || '⬆️') + ' ' + distTxt(nx.at - it.at); }
+  else tbn.hidden = true;
   const v = curV / 3.6;                                  // m/s
   const dFar = Math.min(1500, Math.max(250, v * 30));   // primeiro aviso, ~30 s antes
   const dNear = Math.min(150, Math.max(40, v * 8));     // segundo aviso, ~8 s antes
-  if (it.st < 2 && d <= dNear) { fala(frase(it)); it.st = 2; }
+  if (it.st < 2 && d <= dNear) { fala(frase(it) + encadeia(route.gi, v)); it.st = 2; }
   else if (it.st < 1 && !it.man.startsWith('ARRIVE') && d <= dFar && d > dNear * 1.5 + 60) {
-    fala('Dentro de ' + falaDist(d) + ', ' + frase(it)); it.st = 1;
+    fala('Dentro de ' + falaDist(d) + ', ' + frase(it) + encadeia(route.gi, v)); it.st = 1;
   }
 }
 function guiaLimpa() {
