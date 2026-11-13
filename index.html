@@ -500,6 +500,7 @@ function apply(p) {
   placeUpdate(pos);
   pickNearest(pos); placeDot();
   routeTick(pos, c.accuracy);
+  perigoTick(pos);
 
   if (ready) map.setLayoutProperty('nums', 'visibility', numsOn ? 'visible' : 'none');
 
@@ -582,6 +583,29 @@ function showWx(o, guardado) {
   wx.textContent = o.t + (o.temp != null ? ' ' + o.temp.toFixed(1).replace('.', ',') + '°' : '') + (guardado ? ' (guardado)' : '');
 }
 
+function falaTemp(t) {
+  const r = Math.round(t), a = Math.abs(r);
+  return (r < 0 ? 'menos ' : '') + a + (a === 1 ? ' grau' : ' graus');
+}
+// gelo, neve, nevoeiro e chuva forte: avisa por voz (uma vez em cada 30 min por tipo), quando estás em andamento
+function avisoTempo(o, c) {
+  const t = o && o.t || '', temp = o.temp, tt = temp != null ? ' Temperatura de ' + falaTemp(temp) + '.' : '';
+  let cls = null, frase = '';
+  if (t.indexOf('Chuva gelada') >= 0) { cls = 'gelo'; frase = 'Atenção, chuva gelada. Risco elevado de gelo na estrada.' + tt; }
+  else if (t.indexOf('Gelo provável') >= 0) { cls = 'gelo'; frase = 'Atenção, gelo provável na estrada.' + tt; }
+  else if (t.indexOf('Possível gelo') >= 0) { cls = 'gelo'; frase = 'Atenção, possível gelo na estrada.' + tt; }
+  else if (t.indexOf('Risco de gelo') >= 0) { cls = 'gelo'; frase = 'Atenção, risco de gelo na estrada.' + tt; }
+  else if (t.indexOf('Neve') >= 0) { cls = 'neve'; frase = 'Atenção, neve. Conduza com cuidado.'; }
+  else if (t.indexOf('Nevoeiro') >= 0) { cls = 'nevoeiro'; frase = 'Atenção, nevoeiro. Reduza a velocidade.'; }
+  else if (c && c.precipitation >= 2.5) { cls = 'chuva'; frase = 'Atenção, chuva forte. Reduza a velocidade.'; }
+  if (!cls) return;
+  const ant = wxFalado.get(cls);
+  if (ant && Date.now() - ant < 30 * 60 * 1000) return;
+  wxFalado.set(cls, Date.now());
+  wxPend = frase;         // dito assim que estiveres em andamento
+  perigoTick(null);
+}
+
 function wxErro(motivo) {
   // só mostra o erro se ainda não houver nenhum valor recente
   if (wxOk) return;
@@ -622,6 +646,7 @@ async function fetchWx() {
   o.temp = c.temperature_2m;
   wxOk = Date.now(); wxPos = [lat, lon];
   showWx(o);
+  avisoTempo(o, c);
   try { localStorage.setItem('wx', JSON.stringify({ t: wxOk, o })); } catch (e) {}
 }
 
@@ -987,7 +1012,7 @@ async function calcRota(ajusta, refaz) {
       else if (mag >= 3 || (v != null && v < 15)) cor = '#d62828';
       else if (mag === 2 || (v != null && v < 35)) cor = '#f08c00';
       else cor = '#f2c200';
-      tr.push({ a: cum[a], b: cum[b], cor, cat, delay: x.delayInSeconds || 0, v });
+      tr.push({ a: cum[a], b: cum[b], cor, cat, delay: x.delayInSeconds || 0, v, p0: pts[a] });
     });
     route = { pts, cum, total: cum[cum.length - 1], tempo: sm.travelTimeInSeconds || 0, atraso: sm.trafficDelayInSeconds || 0, ins, gi: 0, tr, nextTr: null };
     routeT = Date.now(); offCnt = 0; progT = 0;
@@ -1043,6 +1068,7 @@ function routeTick(pos, acc) {
   }
   const trav = route.cum[bi] + bt * (route.cum[bi + 1] - route.cum[bi]);
   const rest = Math.max(0, route.total - trav);
+  route.trav = trav;
   guiaTick(trav);
   barraTick(trav);
   if (rest < 40 && geoDist(pos, [dest.lon, dest.lat]) < 60) {
@@ -1121,14 +1147,35 @@ function escolheVoz() {
     return vs.find(v => /^pt[-_]PT/i.test(v.lang)) || vs.find(v => /^pt/i.test(v.lang)) || null;
   } catch (e) { return null; }
 }
+let filaAv = [];
+function falaRaw(t) {
+  const u = new SpeechSynthesisUtterance(t);
+  u.lang = 'pt-PT'; u.rate = 1;
+  const v = escolheVoz(); if (v) u.voice = v;
+  u.onend = u.onerror = () => setTimeout(flushAv, 200);
+  speechSynthesis.speak(u);
+}
+// avisos que esperaram por uma instrução de navegação
+function flushAv() {
+  try {
+    if (!filaAv.length || speechSynthesis.speaking || speechSynthesis.pending) return;
+    falaRaw(filaAv.shift());
+  } catch (e) {}
+}
+// instruções de navegação: passam à frente de tudo o que estiver a ser dito
 function fala(t) {
   if (!vozOn || !t || !('speechSynthesis' in window)) return;
   try {
-    speechSynthesis.cancel(); // a instrução mais recente passa à frente de uma fala atrasada
-    const u = new SpeechSynthesisUtterance(t);
-    u.lang = 'pt-PT'; u.rate = 1;
-    const v = escolheVoz(); if (v) u.voice = v;
-    speechSynthesis.speak(u);
+    speechSynthesis.cancel();
+    falaRaw(t);
+  } catch (e) {}
+}
+// avisos de perigo: esperam a sua vez e não cortam uma instrução de curva
+function falaAviso(t) {
+  if (!vozOn || !t || !('speechSynthesis' in window)) return;
+  try {
+    if (speechSynthesis.speaking || speechSynthesis.pending) { filaAv.push(t); setTimeout(flushAv, 4000); return; }
+    falaRaw(t);
   } catch (e) {}
 }
 vzBtn.addEventListener('click', () => {
@@ -1233,6 +1280,55 @@ function guiaTick(trav) {
 function guiaLimpa() {
   tb.hidden = true; document.body.classList.remove('nav');
 }
+
+// ---- avisos de perigo por voz ----
+// Com rota ativa: perigos que estão em cima do percurso. Sem rota: perigos na direção em que vais.
+function perigoTick(pos) {
+  if (wxPend && curV > 10) { falaAviso(wxPend); wxPend = null; }
+  if (!pos || curV < 10 || Date.now() - perigoT < 3000) return;
+  if (!perigos.length && !(route && route.tr && route.tr.length)) return;
+  perigoT = Date.now();
+  const v = curV / 3.6, dAv = Math.min(2500, Math.max(600, v * 45));
+  let melhor = null;
+  const noRota = route && route.pts && route.trav != null;
+  perigos.forEach(h => {
+    const q = avisados.get(h.key);
+    if (q && Date.now() - q < 30 * 60 * 1000) return;
+    let dmin = Infinity;
+    h.pts.forEach(p => {
+      const d0 = geoDist(pos, p);
+      if (d0 > dAv + 300) return;
+      let ahead = null;
+      if (noRota) {
+        let bd = Infinity, bi = 0, bt = 0;
+        for (let i = 0; i < route.pts.length - 1; i++) {
+          const r = segDist(p, route.pts[i], route.pts[i + 1]);
+          if (r.d < bd) { bd = r.d; bi = i; bt = r.t; }
+        }
+        if (bd < 40) ahead = route.cum[bi] + bt * (route.cum[bi + 1] - route.cum[bi]) - route.trav;
+      } else if (d0 <= dAv) {
+        const dif = Math.abs(((geoBearing(pos, p) - bearing + 540) % 360) - 180);
+        if (dif <= 35) ahead = d0;
+      }
+      if (ahead != null && ahead >= 0 && ahead <= dAv && ahead < dmin) dmin = ahead;
+    });
+    if (dmin < Infinity && (!melhor || dmin < melhor.d)) melhor = { chave: h.key, nome: PERIGO_NOME[h.cat], d: dmin };
+  });
+  // trânsito parado ou estrada cortada no percurso (dados da rota)
+  if (noRota && route.tr) route.tr.forEach(t => {
+    const grave = t.cat === 'ROAD_CLOSURE' || (t.cat === 'JAM' && t.delay >= 60 && (t.v == null || t.v < 30));
+    if (!grave || !t.p0) return;
+    const chave = 'tr:' + t.cat + t.p0[0].toFixed(3) + ',' + t.p0[1].toFixed(3);
+    const q = avisados.get(chave);
+    if (q && Date.now() - q < 30 * 60 * 1000) return;
+    const ahead = t.a - route.trav;
+    if (ahead < 0 || ahead > dAv) return;
+    if (!melhor || ahead < melhor.d) melhor = { chave, nome: t.cat === 'ROAD_CLOSURE' ? 'estrada cortada' : 'trânsito lento', d: ahead };
+  });
+  if (!melhor) return;
+  avisados.set(melhor.chave, Date.now());
+  falaAviso('Atenção, ' + melhor.nome + (melhor.d < 200 ? ' logo à frente.' : ' a ' + falaDist(melhor.d) + '.'));
+}
 // ---- fim das instruções e voz ----
 
 // ---- barra lateral do trânsito no trajeto ----
@@ -1284,6 +1380,12 @@ function barraLimpa() { tfb.hidden = true; trk.textContent = ''; tfIcons.forEach
 const INC_NOME = { 0: 'Incidente', 1: 'Acidente', 2: 'Nevoeiro', 3: 'Condições perigosas', 4: 'Chuva forte', 5: 'Gelo',
   7: 'Faixa cortada', 8: 'Estrada cortada', 9: 'Obras', 10: 'Vento forte', 11: 'Inundação', 14: 'Veículo avariado' };
 let incOk = 0, incTry = 0, incPos = null;
+// perigos avisados por voz (categorias TomTom): 1 acidente, 2 nevoeiro, 3 condições perigosas, 5 gelo, 7 faixa cortada,
+// 8 estrada cortada, 10 vento, 11 inundação, 14 veículo avariado. Obras (9) e chuva (4) só se vêem no mapa.
+const PERIGO_NOME = { 1: 'acidente', 2: 'nevoeiro', 3: 'condições perigosas na estrada', 5: 'gelo na estrada', 7: 'faixa cortada',
+  8: 'estrada cortada', 10: 'vento forte', 11: 'inundação', 14: 'veículo avariado' };
+let perigos = [], perigoT = 0, wxPend = null;
+const avisados = new Map(), wxFalado = new Map();
 
 function mkIcon(nome, fn) {
   const c = document.createElement('canvas');
@@ -1307,7 +1409,7 @@ function criaIconesInc() {
 }
 
 async function fetchInc() {
-  if (!trOn || !ready) return;
+  if (!(trOn || vozOn) || !ready) return;
   if (Date.now() - incTry < 120000) return;
   const lat = last ? last.coords.latitude : map.getCenter().lat;
   const lon = last ? last.coords.longitude : map.getCenter().lng;
@@ -1328,6 +1430,7 @@ async function fetchInc() {
   }
   if (!j) return;
   const feats = [];
+  const novos = [];
   (j.incidents || []).forEach(it => {
     const p = it.properties || {}, cat = p.iconCategory, g = it.geometry;
     if (cat === 6 || !g) return; // trânsito lento já se vê nas cores das estradas
@@ -1336,6 +1439,12 @@ async function fetchInc() {
       cat: cat, desc: ev.description || '', from: p.from || '', to: p.to || '', end: p.endTime || '',
       img: cat === 1 ? 'inc-acc' : cat === 8 ? 'inc-fecha' : cat === 7 ? 'inc-faixa' : cat === 9 ? 'inc-obras' : 'inc-outro'
     };
+    if (PERIGO_NOME[cat]) {
+      const cs = g.type === 'Point' ? [g.coordinates] : (g.type === 'LineString' ? g.coordinates : []);
+      const passo = Math.max(1, Math.ceil(cs.length / 20));
+      const amostra = cs.filter((c, i) => i % passo === 0 || i === cs.length - 1);
+      if (amostra.length) novos.push({ cat, pts: amostra, key: cat + ':' + amostra[0][0].toFixed(3) + ',' + amostra[0][1].toFixed(3) });
+    }
     let pt;
     if (g.type === 'Point') pt = g.coordinates;
     else if (g.type === 'LineString' && g.coordinates.length) {
@@ -1345,6 +1454,7 @@ async function fetchInc() {
     feats.push({ type: 'Feature', properties: base, geometry: { type: 'Point', coordinates: pt } });
   });
   map.getSource('inc').setData({ type: 'FeatureCollection', features: feats });
+  perigos = novos;
   incOk = Date.now(); incPos = [lat, lon];
 }
 
@@ -1362,7 +1472,7 @@ function setTrafego(on) {
 trBtn.addEventListener('click', () => setTrafego(!trOn));
 // de 2 em 2 minutos pede mosaicos novos
 setInterval(() => {
-  if (trOn && ready && navigator.onLine) { try { map.getSource('trafego').setTiles([trUrl()]); } catch (e) {} fetchInc(); }
+  if ((trOn || vozOn) && ready && navigator.onLine) { if (trOn) { try { map.getSource('trafego').setTiles([trUrl()]); } catch (e) {} } fetchInc(); }
 }, 120000);
 map.on('error', e => {
   if (e && e.sourceId === 'trafego' && trOn && Date.now() - trErr > 30000) {
