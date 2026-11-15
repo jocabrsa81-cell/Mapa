@@ -189,6 +189,7 @@
 <div id="sp" hidden>
   <div class="lin"><input id="sq" type="search" placeholder="Rua, número, localidade" autocomplete="off" enterkeyhint="search"><button id="sb">Procurar</button><button class="x" id="sx">X</button></div>
   <button id="sm" style="margin-top:8px;padding:10px 14px">Escolher no mapa</button>
+  <button id="zd" style="margin-top:8px;padding:10px 14px">Zonas de perigo (França): desligado</button>
   <div id="sr"></div>
 </div>
 <div id="rb" hidden>
@@ -1343,7 +1344,7 @@ function perigoTick(pos) {
 // ---- fim das instruções e voz ----
 
 // ---- avisos de radar (só onde é permitido) ----
-// Luxemburgo e Bélgica: avisos permitidos para apps. França: a lei (R413-15) proíbe avisar a localização de radares.
+// Luxemburgo e Bélgica: avisos permitidos para apps. França: só 'zona de perigo' (opcional, desligado por defeito); R413-15 proíbe indicar a localização.
 // Alemanha: o condutor não pode usar a função de aviso. Por isso a app só avisa quando sabe que estás em LU ou BE.
 // Dados: radares.json (exportação do overpass-turbo). Sem esse ficheiro, não avisa.
 const RADAR_PAISES = ['lu', 'be'];
@@ -1374,22 +1375,33 @@ async function carregaRadares() {
   } catch (e) { radares = []; }
 }
 // só avisa se o país foi confirmado há pouco tempo, aqui perto, e é um dos permitidos
+// França: só "zona de perigo" (sem posição exata, sem a palavra radar), e só se ligares tu no painel de pesquisa
+let zdOn = false; try { zdOn = localStorage.getItem('zd') === '1'; } catch (e) {}
+const zdBtn = document.getElementById('zd');
+function zdUi() { zdBtn.textContent = 'Zonas de perigo (França): ' + (zdOn ? 'ligado' : 'desligado'); }
+zdUi();
+zdBtn.addEventListener('click', () => { zdOn = !zdOn; try { localStorage.setItem('zd', zdOn ? '1' : '0'); } catch (e) {} zdUi(); });
+function hashF(k) { let h = 0; for (let i = 0; i < k.length; i++) h = (h * 31 + k.charCodeAt(i)) >>> 0; return 0.25 + (h % 1000) / 1000 * 0.5; }
 function radarPermitido(pos) {
-  return !!paisCC && RADAR_PAISES.includes(paisCC) && Date.now() - paisT < 90000 && !!paisPos && geoDist(paisPos, pos) < 2000;
+  return !!paisCC && (RADAR_PAISES.includes(paisCC) || (paisCC === 'fr' && zdOn)) && Date.now() - paisT < 90000 && !!paisPos && geoDist(paisPos, pos) < 2000;
 }
 function radarTick(pos) {
   if (!radares.length || curV < 10 || Date.now() - radarT < 2000) return;
   radarT = Date.now();
   if (!radarPermitido(pos)) return;
-  const v = curV / 3.6, dAv = Math.min(1000, Math.max(400, v * 25));
+  const fr = paisCC === 'fr';
+  const v = curV / 3.6, dAv = fr ? 3200 : Math.min(1000, Math.max(400, v * 25));
+  const zonaL = r => { const l = r.lim || (curV < 60 ? 50 : curV < 100 ? 80 : 130); return l <= 50 ? 500 : l <= 100 ? 2000 : 4000; };
   const noRota = route && route.pts && route.trav != null;
   let melhor = null;
   radares.forEach(r => {
-    if (Math.abs(r.lat - pos[1]) > 0.012 || Math.abs(r.lon - pos[0]) > 0.02) return;
+    if (Math.abs(r.lat - pos[1]) > (fr ? 0.03 : 0.012) || Math.abs(r.lon - pos[0]) > (fr ? 0.045 : 0.02)) return;
     const q = radarAvisado.get(r.key);
     if (q && Date.now() - q < 10 * 60 * 1000) return;
     const p = [r.lon, r.lat], d0 = geoDist(pos, p);
-    if (d0 > dAv + 200) return;
+    const zl = fr ? zonaL(r) : 0, zf = fr ? hashF(r.key) : 0;
+    const dMax = fr ? zl * zf : dAv;
+    if (d0 > dMax + 200) return;
     let ahead = null;
     if (noRota) {
       let bd = Infinity;
@@ -1399,10 +1411,16 @@ function radarTick(pos) {
       const dif = Math.abs(((geoBearing(pos, p) - bearing + 540) % 360) - 180);
       if (dif <= 35) ahead = d0;
     }
-    if (ahead != null && ahead <= dAv && (!melhor || ahead < melhor.d)) melhor = { r, d: ahead };
+    if (ahead != null && ahead <= dMax && (!melhor || ahead < melhor.d)) melhor = { r, d: ahead, zl, zf };
   });
   if (!melhor) return;
   radarAvisado.set(melhor.r.key, Date.now());
+  if (fr) {
+    const rem = Math.max(300, Math.round((melhor.d + (1 - melhor.zf) * melhor.zl) / 100) * 100);
+    avisa('⚠️ Zona de perigo · ' + (rem >= 1000 ? (rem / 1000).toFixed(1).replace('.', ',') + ' km' : rem + ' m'));
+    falaAviso('Atenção, zona de perigo nos próximos ' + (rem >= 1000 ? (rem / 1000).toFixed(1).replace('.', ',') + ' quilómetros.' : rem + ' metros.'));
+    return;
+  }
   const lim = melhor.r.lim;
   avisa('📷 Radar' + (lim ? ' · limite ' + lim + ' km/h' : ''));
   falaAviso('Atenção, aproxima-se de um radar.' + (lim ? ' Limite de velocidade, ' + lim + ' quilómetros por hora.' : ''));
