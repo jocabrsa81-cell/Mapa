@@ -501,6 +501,7 @@ function apply(p) {
   pickNearest(pos); placeDot();
   routeTick(pos, c.accuracy);
   perigoTick(pos);
+  radarTick(pos);
 
   if (ready) map.setLayoutProperty('nums', 'visibility', numsOn ? 'visible' : 'none');
 
@@ -660,6 +661,9 @@ try {
 // Nominatim (OpenStreetMap) dá a morada; guarda-se por zonas de ~200 m para funcionar sem rede onde já passaste.
 // Sem rede e sem guardado, usa o nome da localidade mais próxima dos mapas carregados, marcado com ≈ (sem código postal).
 let plTxt = '', plPos = null, plTry = 0, plBusy = false;
+let paisCC = null, paisT = 0, paisPos = null;   // país (código ISO) onde estás, para decidir se os radares podem avisar
+const ccCache = new Map();
+try { JSON.parse(localStorage.getItem('cc') || '[]').forEach(([k, v]) => ccCache.set(k, v)); } catch (e) {}
 const plCache = new Map();
 try { JSON.parse(localStorage.getItem('pl') || '[]').forEach(([k, v]) => plCache.set(k, v)); } catch (e) {}
 const plKey = p => Math.round(p[1] / 0.002) + ',' + Math.round(p[0] / 0.003);
@@ -695,7 +699,7 @@ function plFallback(pos) {
 
 async function placeUpdate(pos) {
   const k = plKey(pos);
-  if (plCache.has(k)) { plTxt = plCache.get(k); plPos = pos; return; }
+  if (plCache.has(k)) { plTxt = plCache.get(k); plPos = pos; const c0 = ccCache.get(k); if (c0) { paisCC = c0; paisT = Date.now(); paisPos = pos; } return; }
   if (plBusy || Date.now() < plTry) { plFallback(pos); return; }
   plBusy = true; plTry = Date.now() + 15000; // no máximo um pedido de 15 em 15 segundos
   try {
@@ -714,6 +718,13 @@ async function placeUpdate(pos) {
     plCache.set(k, txt);
     while (plCache.size > 300) plCache.delete(plCache.keys().next().value);
     try { localStorage.setItem('pl', JSON.stringify([...plCache])); } catch (e) {}
+    const cc = j && j.address && j.address.country_code ? String(j.address.country_code).toLowerCase() : '';
+    if (cc) {
+      ccCache.set(k, cc);
+      while (ccCache.size > 300) ccCache.delete(ccCache.keys().next().value);
+      try { localStorage.setItem('cc', JSON.stringify([...ccCache])); } catch (e) {}
+      paisCC = cc; paisT = Date.now(); paisPos = pos;
+    }
     plTxt = txt; plPos = pos;
   } catch (e) {
     plTry = Date.now() + 45000; // depois de uma falha, espera mais
@@ -1330,6 +1341,74 @@ function perigoTick(pos) {
   falaAviso('Atenção, ' + melhor.nome + (melhor.d < 200 ? ' logo à frente.' : ' a ' + falaDist(melhor.d) + '.'));
 }
 // ---- fim das instruções e voz ----
+
+// ---- avisos de radar (só onde é permitido) ----
+// Luxemburgo e Bélgica: avisos permitidos para apps. França: a lei (R413-15) proíbe avisar a localização de radares.
+// Alemanha: o condutor não pode usar a função de aviso. Por isso a app só avisa quando sabe que estás em LU ou BE.
+// Dados: radares.json (exportação do overpass-turbo). Sem esse ficheiro, não avisa.
+const RADAR_PAISES = ['lu', 'be'];
+let radares = [], radarT = 0;
+const radarAvisado = new Map();
+async function carregaRadares() {
+  try {
+    const r = await fetch('radares.json');
+    if (!r.ok) throw new Error('sem ficheiro');
+    const j = await r.json();
+    const els = (j && j.elements) || [];
+    const limite = t => { const m = parseInt(t, 10); return (m > 0 && !/mph/i.test(String(t))) ? m : null; };
+    const vias = els.filter(e => e.type === 'way' && e.geometry && e.geometry.length > 1 && e.tags && limite(e.tags.maxspeed));
+    radares = els.filter(e => e.type === 'node' && e.tags && e.tags.highway === 'speed_camera' && e.lat != null && e.lon != null).map(e => {
+      let lim = limite(e.tags.maxspeed);
+      if (!lim) { // sem limite no radar: usa o da via mais próxima (até 40 m)
+        let bd = 40;
+        vias.forEach(w => {
+          for (let i = 0; i < w.geometry.length - 1; i++) {
+            const a = w.geometry[i], b = w.geometry[i + 1];
+            const d = segDist([e.lon, e.lat], [a.lon, a.lat], [b.lon, b.lat]).d;
+            if (d < bd) { bd = d; lim = limite(w.tags.maxspeed); }
+          }
+        });
+      }
+      return { lon: e.lon, lat: e.lat, lim, key: 'rd:' + e.id };
+    });
+  } catch (e) { radares = []; }
+}
+// só avisa se o país foi confirmado há pouco tempo, aqui perto, e é um dos permitidos
+function radarPermitido(pos) {
+  return !!paisCC && RADAR_PAISES.includes(paisCC) && Date.now() - paisT < 90000 && !!paisPos && geoDist(paisPos, pos) < 2000;
+}
+function radarTick(pos) {
+  if (!radares.length || curV < 10 || Date.now() - radarT < 2000) return;
+  radarT = Date.now();
+  if (!radarPermitido(pos)) return;
+  const v = curV / 3.6, dAv = Math.min(1000, Math.max(400, v * 25));
+  const noRota = route && route.pts && route.trav != null;
+  let melhor = null;
+  radares.forEach(r => {
+    if (Math.abs(r.lat - pos[1]) > 0.012 || Math.abs(r.lon - pos[0]) > 0.02) return;
+    const q = radarAvisado.get(r.key);
+    if (q && Date.now() - q < 10 * 60 * 1000) return;
+    const p = [r.lon, r.lat], d0 = geoDist(pos, p);
+    if (d0 > dAv + 200) return;
+    let ahead = null;
+    if (noRota) {
+      let bd = Infinity;
+      for (let i = 0; i < route.pts.length - 1; i++) { const x = segDist(p, route.pts[i], route.pts[i + 1]); if (x.d < bd) bd = x.d; }
+      if (bd < 40) ahead = d0;
+    } else if (d0 <= dAv) {
+      const dif = Math.abs(((geoBearing(pos, p) - bearing + 540) % 360) - 180);
+      if (dif <= 35) ahead = d0;
+    }
+    if (ahead != null && ahead <= dAv && (!melhor || ahead < melhor.d)) melhor = { r, d: ahead };
+  });
+  if (!melhor) return;
+  radarAvisado.set(melhor.r.key, Date.now());
+  const lim = melhor.r.lim;
+  avisa('📷 Radar' + (lim ? ' · limite ' + lim + ' km/h' : ''));
+  falaAviso('Atenção, aproxima-se de um radar.' + (lim ? ' Limite de velocidade, ' + lim + ' quilómetros por hora.' : ''));
+}
+carregaRadares();
+// ---- fim dos avisos de radar ----
 
 // ---- barra lateral do trânsito no trajeto ----
 // Do fundo (a tua seta, com os km que faltam) ao topo (bandeira). Pista cinzenta; trânsito a cores; ícones nos problemas.
