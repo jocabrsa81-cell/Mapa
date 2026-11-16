@@ -189,6 +189,7 @@
 <div id="sp" hidden>
   <div class="lin"><input id="sq" type="search" placeholder="Rua, número, localidade" autocomplete="off" enterkeyhint="search"><button id="sb">Procurar</button><button class="x" id="sx">X</button></div>
   <button id="sm" style="margin-top:8px;padding:10px 14px">Escolher no mapa</button>
+  <button id="lg" style="margin-top:8px;padding:10px 14px">Idioma</button>
   <button id="zd" style="margin-top:8px;padding:10px 14px">Zonas de perigo (França): desligado</button>
   <div id="sr"></div>
 </div>
@@ -225,6 +226,162 @@ let trOn = false, trErr = 0;
 try { trOn = localStorage.getItem('tr') === '1'; } catch (e) {}
 const trUrl = () => 'https://api.tomtom.com/traffic/map/4/tile/flow/relative/{z}/{x}/{y}.png?key=' + KEY_TT +
   '&tileSize=256&t=' + Math.floor(Date.now() / 120000);
+
+// ---- idioma: PT (por defeito) ou FR ----
+// A lógica da app fica em português; em FR traduz-se só o que aparece no ecrã e o que é dito em voz.
+let LANG = 'pt'; try { LANG = localStorage.getItem('lg') === 'fr' ? 'fr' : 'pt'; } catch (e) {}
+const FR = LANG === 'fr';
+const LG_TT = FR ? 'fr-FR' : 'pt-PT';
+const FR_DICT = [
+  // frases de voz e de ecrã (mais específicas primeiro)
+  ['Sem voz portuguesa. Instala-a em Definições > Gestão geral > Texto para voz', 'Pas de voix française. Installez-la dans Paramètres > Gestion globale > Synthèse vocale'],
+  ['Sem rede: não dá para pesquisar moradas.', 'Pas de réseau : impossible de chercher des adresses.'],
+  ['Sem rede: não dá para calcular a rota', 'Pas de réseau : impossible de calculer l\'itinéraire'],
+  ['Guarda o mapa à volta do centro do ecrã, para usar com sinal fraco. Usa wifi.', 'Enregistre la carte autour du centre de l\'écran, pour l\'utiliser avec un signal faible. Utilise le wifi.'],
+  ['Move o mapa até a cruz ficar no destino', 'Déplacez la carte jusqu\'à ce que la croix soit sur la destination'],
+  ['Este telemóvel não suporta GPS no browser', 'Ce téléphone ne prend pas en charge le GPS dans le navigateur'],
+  ['Ativa a localização para este site', 'Activez la localisation pour ce site'],
+  ['⚠ número não encontrado: aponta para a rua', '⚠ numéro introuvable : pointe vers la rue'],
+  ['Sem números vizinhos nos dados.', 'Pas de numéros voisins dans les données.'],
+  ['A procurar números vizinhos…', 'Recherche des numéros voisins…'],
+  [/nº (\d+) \(vizinho do (.+?), que não existe nos dados\)/g, 'n° $1 (voisin du $2, qui n\'existe pas dans les données)'],
+  ['Zonas de perigo (França): ligado', 'Zones de danger (France) : activé'],
+  ['Zonas de perigo (França): desligado', 'Zones de danger (France) : désactivé'],
+  ['P perto do destino: a procurar…', 'P près de la destination : recherche…'],
+  ['P perto do destino: ', 'P près de la destination : '],
+  ['P perto do destino', 'P près de la destination'],
+  [' (em linha reta)', ' (à vol d\'oiseau)'],
+  ['Não consegui atualizar a rota (', 'Impossible de mettre à jour l\'itinéraire ('],
+  ['Rota falhou (', 'Échec de l\'itinéraire ('],
+  ['Falhou a pesquisa (', 'Échec de la recherche ('],
+  ['Rota calculada. ', 'Itinéraire calculé. '],
+  ['A recalcular a rota.', 'Recalcul de l\'itinéraire.'],
+  ['A calcular rota…', 'Calcul de l\'itinéraire…'],
+  ['Chegaste ao destino', 'Vous êtes arrivé'],
+  ['Voz ativada.', 'Voix activée.'],
+  ['Erro na app: ', 'Erreur de l\'app : '],
+  ['Não disponível neste browser.', 'Indisponible dans ce navigateur.'],
+  ['Zona demasiado grande (', 'Zone trop grande ('],
+  [' mosaicos falharam. Repete com boa rede.', ' tuiles ont échoué. Réessayez avec un bon réseau.'],
+  ['Guardado, mas ', 'Enregistré, mais '],
+  ['Zona guardada (', 'Zone enregistrée ('],
+  [' mosaicos)', ' tuiles)'],
+  ['A guardar ', 'Enregistrement '],
+  ['Trânsito: sem dados aqui', 'Trafic : pas de données ici'],
+  ['Trânsito: sem rede', 'Trafic : pas de réseau'],
+  ['Trânsito © TomTom', 'Trafic © TomTom'],
+  // avisos de tempo (voz)
+  ['Atenção, chuva gelada. Risco elevado de gelo na estrada.', 'Attention, pluie verglaçante. Risque élevé de verglas sur la route.'],
+  ['Atenção, gelo provável na estrada.', 'Attention, verglas probable sur la route.'],
+  ['Atenção, possível gelo na estrada.', 'Attention, verglas possible sur la route.'],
+  ['Atenção, risco de gelo na estrada.', 'Attention, risque de verglas sur la route.'],
+  ['Atenção, neve. Conduza com cuidado.', 'Attention, neige. Conduisez prudemment.'],
+  ['Atenção, nevoeiro. Reduza a velocidade.', 'Attention, brouillard. Réduisez votre vitesse.'],
+  ['Atenção, chuva forte. Reduza a velocidade.', 'Attention, forte pluie. Réduisez votre vitesse.'],
+  [' Temperatura de ', ' Température de '],
+  // radares e zonas de perigo
+  ['Atenção, zona de perigo nos próximos ', 'Attention, zone de danger sur les prochains '],
+  ['Atenção, aproxima-se de um radar.', 'Attention, un radar approche.'],
+  [' Limite de velocidade, ', ' Limite de vitesse, '],
+  ['quilómetros por hora', 'kilomètres par heure'],
+  ['Zona de perigo', 'Zone de danger'],
+  ['Radar · limite', 'Radar · limite'],
+  // perigos na estrada (voz e popups)
+  ['condições perigosas na estrada', 'conditions dangereuses sur la route'],
+  ['Condições perigosas', 'Conditions dangereuses'],
+  ['gelo na estrada', 'verglas sur la route'],
+  ['faixa cortada', 'voie fermée'], ['Faixa cortada', 'Voie fermée'],
+  ['estrada cortada', 'route coupée'], ['Estrada cortada', 'Route coupée'],
+  ['trânsito lento', 'trafic ralenti'],
+  ['veículo avariado', 'véhicule en panne'], ['Veículo avariado', 'Véhicule en panne'],
+  ['vento forte', 'vent fort'], ['Vento forte', 'Vent fort'],
+  ['inundação', 'inondation'], ['Inundação', 'Inondation'],
+  [/\bacidente\b/g, 'accident'], [/\bAcidente\b/g, 'Accident'],
+  [' logo à frente.', ' juste devant.'],
+  [' à frente: ', ' devant : '],
+  ['Atenção, ', 'Attention, '],
+  ['Chuva forte', 'Forte pluie'],
+  [/(^|\s)até /g, '$1jusqu\'à '],
+  // tempo no ecrã
+  ['Chuva gelada', 'Pluie verglaçante'], ['Gelo provável', 'Verglas probable'], ['Possível gelo', 'Verglas possible'],
+  ['Risco de gelo', 'Risque de verglas'], ['Nevoeiro', 'Brouillard'], ['nevoeiro', 'brouillard'], [/\bNeve\b/g, 'Neige'], [/\bChuva\b/g, 'Pluie'],
+  ['(guardado)', '(enregistré)'],
+  [/\bIncidente\b/g, 'Incident'], [/\bObras\b/g, 'Travaux'], [/\bGelo\b/g, 'Verglas'],
+  // instruções de navegação (voz)
+  ['vire acentuadamente à esquerda', 'tournez franchement à gauche'], ['vire acentuadamente à direita', 'tournez franchement à droite'],
+  ['vire à esquerda', 'tournez à gauche'], ['vire à direita', 'tournez à droite'],
+  ['siga ligeiramente à esquerda', 'serrez légèrement à gauche'], ['siga ligeiramente à direita', 'serrez légèrement à droite'],
+  ['mantenha-se à esquerda', 'restez à gauche'], ['mantenha-se à direita', 'restez à droite'],
+  ['faça inversão de marcha', 'faites demi-tour'],
+  ['entre na autoestrada', 'entrez sur l\'autoroute'], ['entre na rampa', 'prenez la bretelle'],
+  ['na rotunda, saia na saída número ', 'au rond-point, prenez la sortie numéro '],
+  ['na rotunda, saia na ', 'au rond-point, prenez la '],
+  ['na rotunda, siga em frente', 'au rond-point, continuez tout droit'],
+  ['na rotunda, saia à esquerda', 'au rond-point, sortez à gauche'], ['na rotunda, saia à direita', 'au rond-point, sortez à droite'],
+  ['na rotunda, volte para trás', 'au rond-point, faites demi-tour'],
+  [' saída', ' sortie'],
+  ['saia à esquerda', 'sortez à gauche'], ['saia à direita', 'sortez à droite'],
+  [', saída número ', ', sortie numéro '], [' número ', ' numéro '],
+  [/\bsaia\b/g, 'sortez'],
+  ['mude para a estrada principal', 'passez sur la route principale'], ['mude para a estrada paralela', 'passez sur la route parallèle'],
+  ['apanhe o ferry', 'prenez le ferry'],
+  ['chegou ao destino, fica à esquerda', 'vous êtes arrivé, la destination est à gauche'],
+  ['chegou ao destino, fica à direita', 'vous êtes arrivé, la destination est à droite'],
+  ['chegou ao destino', 'vous êtes arrivé à destination'],
+  ['siga as indicações', 'suivez les indications'],
+  [', e logo a seguir, ', ', puis tout de suite, '], [', e depois, dentro de ', ', puis, dans '],
+  ['Dentro de ', 'Dans '],
+  ['Depois: ', 'Ensuite : '],
+  [/(\d+)ª sortie/g, '$1e sortie'], ['saída ', 'sortie '],
+  [/prenez la (primeira|segunda|terceira|quarta|quinta|sexta|sétima|oitava|nona)/g, (m, o) => 'prenez la ' + ({ primeira: 'première', segunda: 'deuxième', terceira: 'troisième', quarta: 'quatrième', quinta: 'cinquième', sexta: 'sixième', sétima: 'septième', oitava: 'huitième', nona: 'neuvième' })[o]],
+  // unidades faladas
+  [/\bquilómetros\b/g, 'kilomètres'], [/\bquilómetro\b/g, 'kilomètre'], [/\bmetros\b/g, 'mètres'],
+  [/\bminutos\b/g, 'minutes'], [/\bminuto\b/g, 'minute'], [/\bhoras\b/g, 'heures'], [/\bhora\b/g, 'heure'],
+  [/\bgraus\b/g, 'degrés'], [/\bgrau\b/g, 'degré'], [/\bmenos /g, 'moins '],
+  [/ a (?=\d)/g, ' à '], [/ e (?=\d)/g, ' et '],
+  // botões e mensagens do ecrã
+  ['A aguardar GPS…', 'En attente du GPS…'], ['A localizar…', 'Localisation…'], ['Sem sinal de GPS', 'Pas de signal GPS'],
+  ['Guardar zona', 'Enregistrer la zone'], [/\bTrânsito\b/g, 'Trafic'], [/^Centrar$/, 'Centrer'],
+  [/^Destino$/, 'Destination'], [/^Rumo$/, 'Cap'], [/^Norte$/, 'Nord'], [/Mudo$/, 'Muet'], [/Voz$/, 'Voix'],
+  ['Confirmar aqui', 'Confirmer ici'], [/^Cancelar$/, 'Annuler'], [/^Procurar$/, 'Chercher'],
+  ['Escolher no mapa', 'Choisir sur la carte'], [/^Parar$/, 'Arrêter'], ['A procurar…', 'Recherche…'],
+  ['Nada encontrado.', 'Rien trouvé.'], ['tempo esgotado', 'délai dépassé'], ['ponto exato', 'point exact'], ['rua / zona', 'rue / zone'],
+  ['Ponto escolhido no mapa', 'Point choisi sur la carte'],
+  [' por trânsito', ' à cause du trafic'],
+  ['Bomba de combustível', 'Station-service'], ['Estacionamento', 'Parking'], ['Carregador elétrico', 'Borne de recharge'], ['WC público', 'WC publics'],
+  ['Mapa de rua', 'Carte'],
+  ['nº ', 'n° ']
+];
+function frTr(s) {
+  if (!s || !FR) return s;
+  let o = s;
+  for (const [a, b] of FR_DICT) o = (typeof a === 'string') ? o.split(a).join(b) : o.replace(a, b);
+  return o;
+}
+const frNos = new WeakMap();
+function frNo(n) {
+  if (n.nodeType === 3) {
+    const m = frNos.get(n);
+    if (m && m === n.data) return;
+    const o = frTr(n.data);
+    if (o !== n.data) { n.data = o; frNos.set(n, o); }
+  } else if (n.nodeType === 1 && !/^(SCRIPT|STYLE|CANVAS)$/.test(n.tagName)) {
+    n.childNodes.forEach(frNo);
+  }
+}
+if (FR) {
+  document.documentElement.lang = 'fr';
+  document.title = frTr(document.title);
+  const sq0 = document.getElementById('sq'); if (sq0) sq0.placeholder = 'Rue, numéro, localité';
+  frNo(document.body);
+  new MutationObserver(ms => ms.forEach(m => {
+    if (m.type === 'characterData') frNo(m.target); else m.addedNodes.forEach(frNo);
+  })).observe(document.body, { childList: true, characterData: true, subtree: true });
+}
+const lgBtn = document.getElementById('lg');
+lgBtn.textContent = FR ? 'Langue : Français → Português' : 'Idioma: Português → Français';
+lgBtn.addEventListener('click', () => { try { localStorage.setItem('lg', FR ? 'pt' : 'fr'); } catch (e) {} location.reload(); });
+// ---- fim do idioma ----
 
 const map = new maplibregl.Map({
   container: 'map',
@@ -266,7 +423,7 @@ map.on('load', () => {
   const isWC = ['any',
     ['==', ['get', 'class'], 'toilets'],
     ['==', ['get', 'subclass'], 'toilets']];
-  const poiFilter = ['any', ['==', ['get', 'class'], 'parking'], isEV, isWC];
+  const poiFilter = ['all', ['!', isEV], ['any', ['==', ['get', 'class'], 'parking'], isWC]];
   // ao afastar o zoom (12 a 15) mantém-se um ponto laranja simples para as bombas
   map.addLayer({
     id: 'poi-fuel-far', type: 'circle', source: 'openmaptiles', 'source-layer': 'poi', minzoom: 12,
@@ -292,6 +449,21 @@ map.on('load', () => {
       'text-field': ['case', isEV, 'E', isWC, 'WC', ['==', ['get', 'class'], 'fuel'], 'G', 'P'],
       'text-font': ['Noto Sans Bold'], 'text-size': ['case', isWC, 10, 12], 'text-allow-overlap': true
     },
+    paint: { 'text-color': '#fff' }
+  });
+
+  // estacionamento de livraison (carga/descarga): P verde, dados de livraison.json (overpass-turbo)
+  map.addSource('liv', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } });
+  map.addLayer({
+    id: 'liv-pontos', type: 'circle', source: 'liv', minzoom: 13,
+    paint: {
+      'circle-radius': ['interpolate', ['linear'], ['zoom'], 13, 5, 18, 11],
+      'circle-color': '#1a9850', 'circle-stroke-width': 2, 'circle-stroke-color': '#fff'
+    }
+  });
+  map.addLayer({
+    id: 'liv-letra', type: 'symbol', source: 'liv', minzoom: 15,
+    layout: { 'text-field': 'P', 'text-font': ['Noto Sans Bold'], 'text-size': 12, 'text-allow-overlap': true },
     paint: { 'text-color': '#fff' }
   });
 
@@ -811,9 +983,11 @@ const fmtKm = m => m < 1000 ? Math.round(m / 10) * 10 + ' m' : (m / 1000).toFixe
 const fmtMin = s => { const m = Math.max(1, Math.round(s / 60)); return m < 60 ? m + ' min' : Math.floor(m / 60) + ' h ' + String(m % 60).padStart(2, '0'); };
 const fmtHora = ms => { const d = new Date(ms); return String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0'); };
 
+let avisaN = 0;
 function avisa(txt) {
+  const n = ++avisaN;
   info.hidden = false; info.textContent = txt;
-  setTimeout(() => { if (info.textContent === txt) info.hidden = true; }, 5000);
+  setTimeout(() => { if (avisaN === n) info.hidden = true; }, 5000);
 }
 
 function abrePesquisa() {
@@ -840,7 +1014,7 @@ async function geocode(q) {
   const querNum = /\d/.test(q);
   try {
     const j = await pedido('https://api.tomtom.com/search/2/geocode/' + encodeURIComponent(q) + '.json?key=' + KEY_TT +
-      '&limit=6&language=pt-PT&countrySet=LU,FR,BE,DE,PT,ES&lat=' + lat.toFixed(4) + '&lon=' + lon.toFixed(4));
+      '&limit=6&language=' + LG_TT + '&countrySet=LU,FR,BE,DE,PT,ES&lat=' + lat.toFixed(4) + '&lon=' + lon.toFixed(4));
     const out = [];
     (j.results || []).forEach(x => {
       if (!x.position) return;
@@ -868,7 +1042,7 @@ async function vizinhos(q, ref) {
     const q2 = q.replace(m[0], m[1] + c);
     try {
       const j = await pedido('https://api.tomtom.com/search/2/geocode/' + encodeURIComponent(q2) + '.json?key=' + KEY_TT +
-        '&limit=1&language=pt-PT&countrySet=LU,FR,BE,DE,PT,ES&lat=' + lat.toFixed(4) + '&lon=' + lon.toFixed(4));
+        '&limit=1&language=' + LG_TT + '&countrySet=LU,FR,BE,DE,PT,ES&lat=' + lat.toFixed(4) + '&lon=' + lon.toFixed(4));
       const x = (j.results || [])[0];
       if (!x || x.type !== 'Point Address' || !x.position || !x.address || String(x.address.streetNumber) !== String(c)) return null;
       if (geoDist([lon, lat], [x.position.lon, x.position.lat]) > 400) return null; // outra rua ou localidade
@@ -936,7 +1110,7 @@ function defineDestino(it) {
 // escolher o destino no mapa: toque longo (0,7 s) ou botão "Escolher no mapa" com cruz no centro
 async function nomeDe(lat, lon) {
   try {
-    const j = await pedido('https://api.tomtom.com/search/2/reverseGeocode/' + lat.toFixed(5) + ',' + lon.toFixed(5) + '.json?key=' + KEY_TT + '&language=pt-PT');
+    const j = await pedido('https://api.tomtom.com/search/2/reverseGeocode/' + lat.toFixed(5) + ',' + lon.toFixed(5) + '.json?key=' + KEY_TT + '&language=' + LG_TT);
     const a = j.addresses && j.addresses[0] && j.addresses[0].address;
     return (a && a.freeformAddress) || '';
   } catch (e) { return ''; }
@@ -1154,13 +1328,13 @@ const ORD = ['', 'primeira', 'segunda', 'terceira', 'quarta', 'quinta', 'sexta',
 function escolheVoz() {
   try {
     const vs = speechSynthesis.getVoices();
-    return vs.find(v => /^pt[-_]PT/i.test(v.lang)) || vs.find(v => /^pt/i.test(v.lang)) || null;
+    return FR ? (vs.find(v => /^fr[-_]FR/i.test(v.lang)) || vs.find(v => /^fr/i.test(v.lang)) || null) : (vs.find(v => /^pt[-_]PT/i.test(v.lang)) || vs.find(v => /^pt/i.test(v.lang)) || null);
   } catch (e) { return null; }
 }
 let filaAv = [];
 function falaRaw(t) {
-  const u = new SpeechSynthesisUtterance(t);
-  u.lang = 'pt-PT'; u.rate = 1;
+  const u = new SpeechSynthesisUtterance(frTr(t));
+  u.lang = LG_TT; u.rate = 1;
   const v = escolheVoz(); if (v) u.voice = v;
   u.onend = u.onerror = () => setTimeout(flushAv, 200);
   speechSynthesis.speak(u);
@@ -1426,6 +1600,25 @@ function radarTick(pos) {
 carregaRadares();
 // ---- fim dos avisos de radar ----
 
+// ---- estacionamento de livraison (P verde) ----
+async function carregaLiv() {
+  try {
+    const r = await fetch('livraison.json');
+    if (!r.ok) throw new Error('sem ficheiro');
+    const j = await r.json();
+    const feats = [];
+    ((j && j.elements) || []).forEach(e => {
+      const lat = e.lat != null ? e.lat : (e.center && e.center.lat), lon = e.lon != null ? e.lon : (e.center && e.center.lon);
+      if (lat == null || lon == null) return;
+      feats.push({ type: 'Feature', properties: {}, geometry: { type: 'Point', coordinates: [lon, lat] } });
+    });
+    const put = () => { const src = map.getSource('liv'); if (src) src.setData({ type: 'FeatureCollection', features: feats }); else map.once('load', put); };
+    put();
+  } catch (e) {}
+}
+carregaLiv();
+// ---- fim do estacionamento de livraison ----
+
 // ---- barra lateral do trânsito no trajeto ----
 // Do fundo (a tua seta, com os km que faltam) ao topo (bandeira). Pista cinzenta; trânsito a cores; ícones nos problemas.
 const tfb = document.getElementById('tfb'), trk = document.getElementById('trk'), tlb = document.getElementById('tlb');
@@ -1513,7 +1706,7 @@ async function fetchInc() {
   const bbox = [lon - 0.18, lat - 0.12, lon + 0.18, lat + 0.12].map(v => v.toFixed(4)).join(',');
   const fields = '{incidents{type,geometry{type,coordinates},properties{iconCategory,magnitudeOfDelay,events{description,code,iconCategory},startTime,endTime,from,to,length}}}';
   let j = null;
-  for (const lang of ['pt-PT', 'en-GB']) {
+  for (const lang of [LG_TT, 'en-GB']) {
     const ctl = new AbortController();
     const t = setTimeout(() => ctl.abort(), 10000);
     try {
@@ -1573,8 +1766,9 @@ map.on('error', e => {
   if (e && e.sourceId === 'trafego' && trOn && Date.now() - trErr > 30000) {
     trErr = Date.now();
     info.hidden = false;
+    const n = ++avisaN;
     info.textContent = navigator.onLine ? 'Trânsito: sem dados aqui' : 'Trânsito: sem rede';
-    setTimeout(() => { if (info.textContent.startsWith('Trânsito')) info.hidden = true; }, 6000);
+    setTimeout(() => { if (avisaN === n) info.hidden = true; }, 6000);
   }
 });
 
