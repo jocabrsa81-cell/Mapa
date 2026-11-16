@@ -817,7 +817,6 @@ function avisa(txt) {
 }
 
 function abrePesquisa() {
-  if (curV > 10) { avisa('Pára o carro para escolher o destino'); return; }
   spEl.hidden = false; sqEl.focus();
 }
 goBtn.addEventListener('click', abrePesquisa);
@@ -943,7 +942,6 @@ async function nomeDe(lat, lon) {
   } catch (e) { return ''; }
 }
 async function pontoMapa(lat, lon) {
-  if (curV > 10) { avisa('Pára o carro para escolher o destino'); return; }
   try { navigator.vibrate && navigator.vibrate(40); } catch (e) {}
   defineDestino({ nome: 'Ponto escolhido no mapa', lat, lon, exato: true, aviso: false });
   const alvo = dest;
