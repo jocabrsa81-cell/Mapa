@@ -23,6 +23,9 @@
     border-radius: 999px; white-space: nowrap; max-width: 92vw; overflow: hidden; text-overflow: ellipsis;
   }
   #chip.on { background: #1a7f37; }
+  /* com o nome da rua: duas linhas, mais baixas, para caber antes das instruções da rota */
+  #chip.dois { padding: 4px 14px; border-radius: 14px; text-align: center; font-size: 13px; line-height: 17px; }
+  #chip .rua { font-size: 12px; line-height: 15px; font-weight: 500; opacity: .9; overflow: hidden; text-overflow: ellipsis; }
   #info {
     position: fixed; top: calc(56px + env(safe-area-inset-top, 0px)); left: 50%; transform: translateX(-50%);
     background: rgba(20,24,28,.82); color: #fff; font-size: 12px; padding: 4px 10px;
@@ -678,11 +681,13 @@ function apply(p) {
   curV = v;
 
   numsOn = numsOn ? v < BACK : v < LIMIT;
-  chip.className = numsOn ? 'on' : '';
-  chip.textContent = plTxt || 'A localizar…';
 
   if (c.heading != null && !isNaN(c.heading) && v > 5) bearing = c.heading;
   const pos = [c.longitude, c.latitude];
+  ruaAtual(pos);
+  chip.className = (numsOn ? 'on' : '') + (ruaTxt ? ' dois' : '');
+  chip.textContent = plTxt || 'A localizar…';
+  if (ruaTxt) { const r = document.createElement('div'); r.className = 'rua'; r.textContent = ruaTxt; chip.appendChild(r); }
   me.setLngLat(pos).addTo(map);
   me.setRotation(northUp ? bearing : 0);
   placeUpdate(pos);
@@ -844,6 +849,45 @@ try {
   const sv = JSON.parse(localStorage.getItem('wx') || 'null');
   if (sv && Date.now() - sv.t < 3 * 3600 * 1000) showWx(sv.o, true);
 } catch (e) {}
+
+// ---- nome da rua (por baixo do código postal) ----
+// Vem dos mapas já carregados (funciona sem rede onde o mapa estiver guardado).
+// A andar, prefere a rua que tem a mesma direção que tu, para não trocar pela rua que cruza.
+let ruaTxt = '', ruaT = 0, ruaPos = null;
+const RUA_PE = ['path', 'track', 'footway', 'cycleway', 'bridleway', 'steps', 'pedestrian'];
+function ruaAtual(pos) {
+  if (!ready || Date.now() - ruaT < 1500) return;
+  ruaT = Date.now();
+  const comRumo = curV > 10;
+  let best = '', bs = Infinity;
+  try {
+    map.querySourceFeatures('openmaptiles', { sourceLayer: 'transportation_name' }).forEach(f => {
+      const pr = f.properties || {};
+      const nome = pr.name || pr.ref;
+      if (!nome) return;
+      const pen = RUA_PE.includes(pr.class) || RUA_PE.includes(pr.subclass) ? 25 : 0; // vais de carro: caminhos só em último caso
+      const g = f.geometry;
+      const linhas = g.type === 'LineString' ? [g.coordinates] : g.type === 'MultiLineString' ? g.coordinates : [];
+      linhas.forEach(l => {
+        for (let i = 0; i < l.length - 1; i++) {
+          const a = l[i], b = l[i + 1];
+          const r = segDist(pos, a, b);
+          if (r.d > 35) continue;
+          let sc = r.d + pen;
+          if (comRumo) {
+            let dif = Math.abs(((geoBearing(a, b) - bearing + 540) % 360) - 180);
+            dif = Math.min(dif, 180 - dif);
+            sc += dif > 50 ? 30 : dif / 5;
+          }
+          if (sc < bs) { bs = sc; best = nome; }
+        }
+      });
+    });
+  } catch (e) {}
+  if (best) { ruaTxt = String(best).split('\n')[0]; ruaPos = pos; }
+  else if (!ruaPos || geoDist(ruaPos, pos) > 80) ruaTxt = '';
+}
+// ---- fim do nome da rua ----
 
 // ---- localidade e código postal (na etiqueta de cima) ----
 // Nominatim (OpenStreetMap) dá a morada; guarda-se por zonas de ~200 m para funcionar sem rede onde já passaste.
