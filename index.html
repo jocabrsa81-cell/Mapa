@@ -86,6 +86,11 @@
   #sq { flex: 1; min-width: 0; font-size: 16px; padding: 11px 12px; border-radius: 10px; border: 0; background: #fff; color: #14181c; }
   #sp button { background: #1a73e8; color: #fff; border: 0; border-radius: 10px; padding: 0 14px; font-size: 15px; font-weight: 700; }
   #sp button.x { background: #3a4048; }
+  #sp .fav { display: flex; gap: 8px; margin-top: 8px; }
+  #sp .fav button { padding: 10px 14px; flex: 1; }
+  #sp .fav button.ed { flex: 0 0 auto; padding: 10px 12px; background: #3a4048; }
+  #sp .fav button.vazio { background: #2c3238; color: #c9d1d9; }
+  #sp .fav button.ed.on { background: #e8a33a; color: #14181c; }
   #sr { margin-top: 8px; max-height: 52vh; overflow-y: auto; }
   #sr .it { padding: 10px 6px; border-top: 1px solid #2c3238; font-size: 15px; }
   #sr .av { color: #ffb84d; font-size: 12px; margin-top: 2px; }
@@ -188,6 +193,7 @@
 </div>
 <div id="sp" hidden>
   <div class="lin"><input id="sq" type="search" placeholder="Rua, número, localidade" autocomplete="off" enterkeyhint="search"><button id="sb">Procurar</button><button class="x" id="sx">X</button></div>
+  <div class="fav"><button id="fCasa">🏠 Casa</button><button class="ed" id="eCasa">✎</button><button id="fTrab">💼 Trabalho</button><button class="ed" id="eTrab">✎</button></div>
   <button id="sm" style="margin-top:8px;padding:10px 14px">Escolher no mapa</button>
   <button id="lg" style="margin-top:8px;padding:10px 14px">Idioma</button>
   <button id="zd" style="margin-top:8px;padding:10px 14px">Zonas de perigo (França): desligado</button>
@@ -350,6 +356,9 @@ const FR_DICT = [
   [' por trânsito', ' à cause du trafic'],
   ['Bomba de combustível', 'Station-service'], ['Estacionamento', 'Parking'], ['Carregador elétrico', 'Borne de recharge'], ['WC público', 'WC publics'],
   ['Mapa de rua', 'Carte'],
+  // Casa e Trabalho
+  [/^🏠 Casa$/, '🏠 Maison'], [/^💼 Trabalho$/, '💼 Travail'],
+  ['🏠 Casa · ', '🏠 Maison · '], ['💼 Trabalho · ', '💼 Travail · '],
   ['nº ', 'n° ']
 ];
 function frTr(s) {
@@ -1097,7 +1106,55 @@ async function pesquisa() {
   }
 }
 
+// ---- Casa e Trabalho: um toque para ir; ✎ para guardar ou mudar a morada ----
+// Para guardar: toca no ✎, depois procura a morada e toca nela na lista (ou usa "Escolher no mapa").
+let favs = {}; try { favs = JSON.parse(localStorage.getItem('favs') || '{}') || {}; } catch (e) { favs = {}; }
+let favModo = null; // 'casa' ou 'trab' enquanto estás a escolher a morada a guardar
+const FAV = {
+  casa: { b: 'fCasa', e: 'eCasa', ic: '🏠', nome: FR ? 'Maison' : 'Casa', ok: FR ? 'Maison enregistrée : ' : 'Casa guardada: ',
+    pede: FR ? 'Cherchez l\'adresse de la maison et touchez-la dans la liste pour l\'enregistrer. Vous pouvez aussi utiliser « Choisir sur la carte ».'
+             : 'Procura a morada de casa e toca nela na lista para a guardar. Também podes usar "Escolher no mapa".' },
+  trab: { b: 'fTrab', e: 'eTrab', ic: '💼', nome: FR ? 'Travail' : 'Trabalho', ok: FR ? 'Travail enregistré : ' : 'Trabalho guardado: ',
+    pede: FR ? 'Cherchez l\'adresse du travail et touchez-la dans la liste pour l\'enregistrer. Vous pouvez aussi utiliser « Choisir sur la carte ».'
+             : 'Procura a morada do trabalho e toca nela na lista para a guardar. Também podes usar "Escolher no mapa".' }
+};
+function gravaFavs() { try { localStorage.setItem('favs', JSON.stringify(favs)); } catch (e) {} }
+function favUi() {
+  Object.keys(FAV).forEach(k => {
+    document.getElementById(FAV[k].b).classList.toggle('vazio', !favs[k]);
+    document.getElementById(FAV[k].e).classList.toggle('on', favModo === k);
+  });
+}
+function favMsg(txt) {
+  srEl.textContent = '';
+  const m = document.createElement('div'); m.className = 'msg'; m.textContent = txt; srEl.appendChild(m);
+}
+function favEditar(k) {
+  if (favModo === k) { favModo = null; favUi(); srEl.textContent = ''; return; }
+  favModo = k; favUi();
+  favMsg(FAV[k].ic + ' ' + FAV[k].pede);
+  sqEl.value = ''; sqEl.focus();
+}
+function guardaFav(k, it) {
+  favs[k] = { lat: it.lat, lon: it.lon, nome: it.nome };
+  gravaFavs(); favModo = null; favUi();
+  spEl.hidden = true; sqEl.blur(); srEl.textContent = '';
+  avisa(FAV[k].ic + ' ' + FAV[k].ok + it.nome);
+}
+Object.keys(FAV).forEach(k => {
+  document.getElementById(FAV[k].b).addEventListener('click', () => {
+    if (!favs[k]) { favEditar(k); return; }
+    favModo = null; favUi();
+    defineDestino({ nome: FAV[k].ic + ' ' + FAV[k].nome + ' · ' + favs[k].nome, lat: favs[k].lat, lon: favs[k].lon, exato: true, aviso: false });
+  });
+  document.getElementById(FAV[k].e).addEventListener('click', () => favEditar(k));
+});
+document.getElementById('sx').addEventListener('click', () => { favModo = null; favUi(); });
+favUi();
+// ---- fim de Casa e Trabalho ----
+
 function defineDestino(it) {
+  if (favModo) { guardaFav(favModo, it); return; }
   dest = { lat: it.lat, lon: it.lon, nome: it.nome, aviso: !!it.aviso };
   spEl.hidden = true; sqEl.blur();
   if (destMark) destMark.remove();
@@ -1117,7 +1174,14 @@ async function nomeDe(lat, lon) {
 }
 async function pontoMapa(lat, lon) {
   try { navigator.vibrate && navigator.vibrate(40); } catch (e) {}
+  const aGuardar = favModo;
   defineDestino({ nome: 'Ponto escolhido no mapa', lat, lon, exato: true, aviso: false });
+  if (aGuardar) { // a guardar Casa/Trabalho: troca o nome pela morada quando chegar
+    const n = await nomeDe(lat, lon);
+    const f = favs[aGuardar];
+    if (n && f && f.lat === lat && f.lon === lon) { f.nome = n; gravaFavs(); }
+    return;
+  }
   const alvo = dest;
   const n = await nomeDe(lat, lon);
   if (n && dest === alvo) { dest.nome = n; if (route) mostraRota(route.total); }
@@ -1138,7 +1202,7 @@ document.getElementById('sm').addEventListener('click', () => {
   spEl.hidden = true; follow = false; autoFit = false; rec.hidden = false;
   cx.hidden = false; pk.hidden = false;
 });
-document.getElementById('pkNo').addEventListener('click', () => { cx.hidden = true; pk.hidden = true; });
+document.getElementById('pkNo').addEventListener('click', () => { cx.hidden = true; pk.hidden = true; favModo = null; favUi(); });
 document.getElementById('pkOk').addEventListener('click', () => {
   const c = map.getContainer(), ll = map.unproject([c.clientWidth / 2, c.clientHeight / 2]);
   cx.hidden = true; pk.hidden = true;
