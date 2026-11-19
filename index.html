@@ -17,6 +17,8 @@
   }
   #spd { font-size: 40px; font-weight: 800; line-height: 1; font-variant-numeric: tabular-nums; }
   #hud small { font-size: 12px; opacity: .75; }
+  #spd.ok { color: #3ddc84; }   /* abaixo do limite */
+  #spd.mau { color: #ff4d4d; }  /* acima do limite */
   #chip {
     position: fixed; top: calc(10px + env(safe-area-inset-top, 0px)); left: 50%; transform: translateX(-50%);
     background: #14181c; color: #fff; font-size: 14px; font-weight: 600; padding: 8px 14px;
@@ -183,7 +185,7 @@
 <body>
 <div id="map"></div>
 <div id="assin">MADE BY BR-JO</div>
-<div id="hud"><div id="spd">0</div><small>km/h</small></div>
+<div id="hud"><div id="spd">0</div><small>km/h<span id="lim"></span></small></div>
 <div id="chip">A aguardar GPS…</div>
 <div id="info" hidden></div>
 <div id="wx" hidden></div>
@@ -679,6 +681,7 @@ function apply(p) {
   const v = (c.speed != null && !isNaN(c.speed)) ? c.speed * 3.6 : 0;
   spd.textContent = Math.round(v);
   curV = v;
+  limTick([c.longitude, c.latitude], v);
 
   numsOn = numsOn ? v < BACK : v < LIMIT;
 
@@ -849,6 +852,44 @@ try {
   const sv = JSON.parse(localStorage.getItem('wx') || 'null');
   if (sv && Date.now() - sv.t < 3 * 3600 * 1000) showWx(sv.o, true);
 } catch (e) {}
+
+// ---- limite de velocidade: número verde (abaixo) ou vermelho (acima); branco quando não se sabe ----
+// Com rota: vem da própria rota TomTom (sem pedidos extra).
+// Sem rota: pergunta à TomTom o limite da estrada onde estás, no máximo de 30 em 30 s e só depois de andares 500 m
+// ou mudares de rua (para não gastar o limite diário grátis da chave).
+const spdLim = document.getElementById('lim');
+let limV = null, limPos = null, limT = 0, limRua = '', limBusy = false;
+function limRota() {
+  if (!route || !route.lims || route.trav == null || offCnt > 0) return null;
+  const s = route.lims.find(x => route.trav >= x.a && route.trav <= x.b);
+  return s ? s.v : null;
+}
+async function limPede(pos) {
+  limBusy = true; limT = Date.now();
+  try {
+    const j = await pedido('https://api.tomtom.com/search/2/reverseGeocode/' + pos[1].toFixed(5) + ',' + pos[0].toFixed(5) +
+      '.json?key=' + KEY_TT + '&returnSpeedLimit=true&heading=' + Math.round(bearing) + '&radius=40');
+    const a = j.addresses && j.addresses[0] && j.addresses[0].address;
+    const t = a && a.speedLimit ? String(a.speedLimit) : '';
+    const n = parseFloat(t);
+    limV = (n > 0 && /KPH|KMH/i.test(t)) ? Math.round(n) : (n > 0 && /MPH/i.test(t)) ? Math.round(n * 1.609) : null;
+    limPos = pos; limRua = ruaTxt;
+  } catch (e) { /* sem resposta: fica branco até ao próximo pedido */ }
+  limBusy = false;
+}
+function limTick(pos, v) {
+  let L = limRota();
+  if (L == null) {
+    // limite antigo deixa de valer se te afastaste muito ou mudaste de rua
+    if (limPos && (geoDist(limPos, pos) > 800 || (ruaTxt && limRua && ruaTxt !== limRua))) limV = null;
+    const precisa = !limPos || geoDist(limPos, pos) > 500 || (ruaTxt && ruaTxt !== limRua);
+    if (precisa && v > 5 && navigator.onLine && !limBusy && Date.now() - limT > 30000) limPede(pos);
+    L = limV;
+  }
+  spd.className = L == null ? '' : (Math.round(v) > L ? 'mau' : 'ok');
+  spdLim.textContent = L == null ? '' : ' · ' + L;
+}
+// ---- fim do limite de velocidade ----
 
 // ---- nome da rua (por baixo do código postal) ----
 // Vem dos mapas já carregados (funciona sem rede onde o mapa estiver guardado).
@@ -1281,7 +1322,7 @@ async function calcRota(ajusta, refaz) {
   try {
     const j = await pedido('https://api.tomtom.com/routing/1/calculateRoute/' + de[0].toFixed(5) + ',' + de[1].toFixed(5) + ':' +
       dest.lat.toFixed(5) + ',' + dest.lon.toFixed(5) + '/json?key=' + KEY_TT +
-      '&traffic=true&travelMode=car&routeType=fastest&computeTravelTimeFor=all&routeRepresentation=polyline&instructionsType=text&sectionType=traffic');
+      '&traffic=true&travelMode=car&routeType=fastest&computeTravelTimeFor=all&routeRepresentation=polyline&instructionsType=text&sectionType=traffic&sectionType=speedLimit');
     const rt = j.routes && j.routes[0];
     if (!rt) throw new Error('sem rota');
     const pts = [];
@@ -1298,6 +1339,13 @@ async function calcRota(ajusta, refaz) {
       if (pi == null || pi < 0 || pi >= cum.length) return;
       ins.push({ at: cum[pi], man: m, street: x.street || '', roads: x.roadNumbers || [], ex: x.exitNumber || '', rex: x.roundaboutExitNumber || 0, st: 0 });
     });
+    const lims = [];
+    (rt.sections || []).forEach(x => {
+      if (String(x.sectionType || '').toUpperCase() !== 'SPEED_LIMIT' || !(x.maxSpeedLimitInKmh > 0)) return;
+      const a = x.startPointIndex, b = x.endPointIndex;
+      if (a == null || b == null || a < 0 || b >= cum.length || b <= a) return;
+      lims.push({ a: cum[a], b: cum[b], v: Math.round(x.maxSpeedLimitInKmh) });
+    });
     const tr = [];
     (rt.sections || []).forEach(x => {
       if (x.sectionType && String(x.sectionType).toUpperCase() !== 'TRAFFIC') return;
@@ -1312,7 +1360,7 @@ async function calcRota(ajusta, refaz) {
       else cor = '#f2c200';
       tr.push({ a: cum[a], b: cum[b], cor, cat, delay: x.delayInSeconds || 0, v, p0: pts[a] });
     });
-    route = { pts, cum, total: cum[cum.length - 1], tempo: sm.travelTimeInSeconds || 0, atraso: sm.trafficDelayInSeconds || 0, ins, gi: 0, tr, nextTr: null };
+    route = { pts, cum, total: cum[cum.length - 1], tempo: sm.travelTimeInSeconds || 0, atraso: sm.trafficDelayInSeconds || 0, ins, gi: 0, tr, nextTr: null, lims };
     routeT = Date.now(); offCnt = 0; progT = 0;
     map.getSource('rota').setData({ type: 'Feature', properties: {}, geometry: { type: 'LineString', coordinates: pts } });
     if (ajusta) {
