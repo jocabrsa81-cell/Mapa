@@ -33,6 +33,11 @@
     background: #1a73e8; color: #fff; border: 0; border-radius: 14px; padding: 14px 18px;
     font-size: 16px; font-weight: 700; box-shadow: 0 2px 10px rgba(0,0,0,.35);
   }
+  #assin {
+    position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(4px + env(safe-area-inset-bottom, 0px));
+    background: rgba(20,24,28,.7); color: #fff; font: 700 10px system-ui, sans-serif; letter-spacing: 1px;
+    padding: 2px 8px; border-radius: 8px; pointer-events: none; white-space: nowrap; z-index: 2;
+  }
   [hidden] { display: none !important; }
   #sv {
     position: fixed; right: 10px; top: calc(100px + env(safe-area-inset-top, 0px));
@@ -174,6 +179,7 @@
 </head>
 <body>
 <div id="map"></div>
+<div id="assin">MADE BY BR-JO</div>
 <div id="hud"><div id="spd">0</div><small>km/h</small></div>
 <div id="chip">A aguardar GPS…</div>
 <div id="info" hidden></div>
